@@ -739,7 +739,7 @@ var T = {
   "ta-IN": {
     consent: {
       title: "தகவல் சம்மதம்",
-      text: "வணக்கம். நான் ஹேண்ட் இன் ஹேண்ட் இந்தியா நிறுவனத்திலிருந்து வருகிறேன். உங்கள் கிராமத்தின் தேவைகளை புரிந்துகொள்ளவும், வளர்ச்சி மற்றும் வாழ்வாதார திட்டங்களை திட்டமிடவும் நாங்கள் ஒரு கணக்கெடுப்பு நடத்துகிறோம். உங்கள் பதில்கள் தனிப்பட்டதாக வைக்கப்படும், திட்ட திட்டமிடல், ஆவணப்படுத்தல் மற்றும் நிரல்களை மேம்படுத்துவதற்கு மட்டுமே பயன்படுத்தப்படும். இந்த கணக்கெடுப்பில் பங்கேற்பது முற்றிலும் தன்னார்வமானது. நீங்கள் தன்னார்வமாக இந்த கணக்கெடுப்பில் பங்கேற்க சம்மதிக்கிறீர்களா?",
+      text: "வணக்கம். நான் ஹேண்ட் இன் ஹேண்ட் இந்தியா நிறுவனத்திலிருந்து வருகிறேன். உங்கள் கிராமத்தின் தேவைகளை புரிந்துகொண்டு, திட்டங்களை திட்டமிட கணக்கெடுப்பு நடத்துகிறோம். உங்கள் பதில்கள் ரகசியமாக வைக்கப்படும். பங்கேற்பது தன்னார்வமானது. நீங்கள் சம்மதிக்கிறீர்களா?",
       yes: "✅ ஆம், நான் சம்மதிக்கிறேன்", no: "❌ இல்லை, நான் சம்மதிக்கவில்லை", proceed: "தொடர்க",
       declined: "நன்றி. உங்கள் விருப்பத்திற்கு இணங்க கணக்கெடுப்பு முடிக்கப்பட்டது."
     },
@@ -833,6 +833,7 @@ window.onload = function() {
 };
 
 function _chunks(text) {
+  // Keep chunks larger (up to 180 chars) to minimise number of requests
   if (text.length <= 180) return [text];
   var result = [], words = text.split(' '), cur = '';
   words.forEach(function(w) {
@@ -843,65 +844,61 @@ function _chunks(text) {
   return result.length ? result : [text.substring(0,180)];
 }
 
+// Fetch a single chunk as an audio/mpeg blob URL (Test E method — fastest confirmed)
+function _fetchBlobUrl(text) {
+  var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(text);
+  var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
+  return fetch(proxyUrl)
+    .then(function(r){ return r.arrayBuffer(); })
+    .then(function(buf){
+      var blob = new Blob([buf], {type:'audio/mpeg'});
+      return URL.createObjectURL(blob);
+    });
+}
+
+// Pre-fetch ALL chunks in parallel, then play sequentially — no waiting between chunks
 function _playTamilChunks(chunks, idx, onDone) {
+  if (!ttsActive) { if(onDone) onDone('done'); return; }
+
+  // Fetch all chunks simultaneously
+  setBtnState(activeBtnId, true, 'loading');
+  var promises = chunks.map(function(chunk){ return _fetchBlobUrl(chunk); });
+
+  Promise.all(promises)
+    .then(function(blobUrls) {
+      if (!ttsActive) { blobUrls.forEach(function(u){ URL.revokeObjectURL(u); }); return; }
+      setBtnState(activeBtnId, true, 'playing');
+      // Play sequentially now that all are ready
+      function playNext(i) {
+        if (i >= blobUrls.length || !ttsActive) {
+          blobUrls.forEach(function(u){ URL.revokeObjectURL(u); });
+          if(onDone) onDone('done');
+          return;
+        }
+        var a = new Audio(blobUrls[i]);
+        _ttsAudio = a;
+        a.onended = function(){ playNext(i+1); };
+        a.onerror = function(){ playNext(i+1); };
+        a.play().catch(function(){ playNext(i+1); });
+      }
+      playNext(0);
+    })
+    .catch(function(err) {
+      // Promise.all failed — fall back to playing chunks one by one sequentially
+      _playTamilChunksFallback(chunks, 0, onDone);
+    });
+}
+
+// Fallback: play chunks one by one (slower but reliable)
+function _playTamilChunksFallback(chunks, idx, onDone) {
   if (idx >= chunks.length || !ttsActive) { if(onDone) onDone('done'); return; }
   var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(chunks[idx]);
   var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-
-  // METHOD: Test E (fastest) -> Test B -> Test A -> done
-  // Step 1: fetch proxy -> arrayBuffer -> force audio/mpeg blob (Test E - fastest)
-  fetch(proxyUrl)
-    .then(function(r){ return r.arrayBuffer(); })
-    .then(function(buf){
-      if (!ttsActive) return;
-      var blob = new Blob([buf], {type:'audio/mpeg'});
-      var blobUrl = URL.createObjectURL(blob);
-      var a = new Audio(blobUrl);
-      _ttsAudio = a;
-      a.onended = function(){
-        URL.revokeObjectURL(blobUrl);
-        _playTamilChunks(chunks, idx+1, onDone);
-      };
-      a.onerror = function(){
-        URL.revokeObjectURL(blobUrl);
-        _ttsAudio = null;
-        // Step 2: fetch proxy -> blob without forcing type (Test B)
-        fetch(proxyUrl)
-          .then(function(r2){ return r2.blob(); })
-          .then(function(blob2){
-            if (!ttsActive) return;
-            var blobUrl2 = URL.createObjectURL(blob2);
-            var a2 = new Audio(blobUrl2);
-            _ttsAudio = a2;
-            a2.onended = function(){ URL.revokeObjectURL(blobUrl2); _playTamilChunks(chunks, idx+1, onDone); };
-            a2.onerror = function(){
-              URL.revokeObjectURL(blobUrl2);
-              _ttsAudio = null;
-              // Step 3: AllOrigins direct audio element (Test A)
-              var a3 = new Audio(proxyUrl);
-              _ttsAudio = a3;
-              a3.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
-              a3.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
-              a3.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
-            };
-            a2.play().catch(function(){ if(onDone) onDone('error'); });
-          })
-          .catch(function(){ if(onDone) onDone('error'); });
-      };
-      a.play().catch(function(e){
-        URL.revokeObjectURL(blobUrl);
-        _ttsAudio = null;
-        if(onDone) onDone('error');
-      });
-    })
-    .catch(function(){
-      // fetch totally failed — try AllOrigins direct audio element (Test A)
-      var a3 = new Audio(proxyUrl);
-      _ttsAudio = a3;
-      a3.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
-      a3.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
-      a3.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
-    });
+  var a = new Audio(proxyUrl);
+  _ttsAudio = a;
+  a.onended = function(){ _playTamilChunksFallback(chunks, idx+1, onDone); };
+  a.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
+  a.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
 }
 
 function _speakEnglish(text, onEnd) {
