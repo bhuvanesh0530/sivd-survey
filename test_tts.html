@@ -1,75 +1,96 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>TTS Test</title></head>
+<head><meta charset="UTF-8"><title>TTS Test 2</title></head>
 <body>
-<h2>TTS Engine Test</h2>
-<p id="status">Click a button to test</p>
+<h2>Tamil Audio Test</h2>
+<p id="status">Ready</p>
 <br>
-<button onclick="test1()">Test 1: Web Speech API (Tamil)</button><br><br>
-<button onclick="test2()">Test 2: Web Speech API (English)</button><br><br>
-<button onclick="test3()">Test 3: Google TTS Direct</button><br><br>
-<button onclick="test4()">Test 4: AllOrigins Proxy</button><br><br>
-<button onclick="test5()">Test 5: List all voices</button>
-<pre id="log"></pre>
-
+<button onclick="t1()">Test A: AllOrigins proxy (audio element)</button><br><br>
+<button onclick="t2()">Test B: AllOrigins proxy (fetch + blob)</button><br><br>
+<button onclick="t3()">Test C: corsproxy.io</button><br><br>
+<button onclick="t4()">Test D: Hindi Web Speech (hi-IN exists on your PC)</button><br><br>
+<button onclick="t5()">Test E: Direct play after user click</button>
+<pre id="log" style="font-size:13px;margin-top:10px"></pre>
 <script>
-function log(msg){ document.getElementById('log').textContent += msg + '\n'; document.getElementById('status').textContent = msg; }
+function log(m){document.getElementById('log').textContent+=m+'\n';document.getElementById('status').textContent=m;console.log(m);}
 
-function test1(){
-  log('Testing Web Speech API Tamil...');
-  if(!window.speechSynthesis){ log('FAIL: speechSynthesis not supported'); return; }
+var tamil = 'வணக்கம். இது ஒரு சோதனை.';
+var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(tamil);
+
+function t1(){
+  log('Test A: AllOrigins audio element...');
+  var url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
+  var a = new Audio(url);
+  a.oncanplay = function(){ log('Test A: canplay fired, duration='+a.duration); };
+  a.onplay   = function(){ log('Test A: PLAYING'); };
+  a.onended  = function(){ log('Test A: ENDED OK ✅'); };
+  a.onerror  = function(){ log('Test A: ERROR code='+( a.error&&a.error.code)+' msg='+(a.error&&a.error.message)); };
+  a.play().then(function(){ log('Test A: play() resolved'); }).catch(function(e){ log('Test A: play() rejected = '+e.message); });
+}
+
+function t2(){
+  log('Test B: fetch+blob...');
+  var url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
+  fetch(url)
+    .then(function(r){
+      log('Test B: fetch status='+r.status+' type='+r.headers.get('content-type'));
+      return r.blob();
+    })
+    .then(function(blob){
+      log('Test B: blob size='+blob.size+' type='+blob.type);
+      var blobUrl = URL.createObjectURL(blob);
+      var a = new Audio(blobUrl);
+      a.onplay  = function(){ log('Test B: PLAYING ✅'); };
+      a.onended = function(){ log('Test B: ENDED OK ✅'); };
+      a.onerror = function(){ log('Test B: ERROR'); };
+      a.play().catch(function(e){ log('Test B: play rejected='+e.message); });
+    })
+    .catch(function(e){ log('Test B: fetch failed='+e.message); });
+}
+
+function t3(){
+  log('Test C: corsproxy.io...');
+  var url = 'https://corsproxy.io/?'+encodeURIComponent(direct);
+  var a = new Audio(url);
+  a.onplay  = function(){ log('Test C: PLAYING ✅'); };
+  a.onended = function(){ log('Test C: ENDED OK ✅'); };
+  a.onerror = function(){ log('Test C: ERROR code='+(a.error&&a.error.code)); };
+  a.play().catch(function(e){ log('Test C: play rejected='+e.message); });
+}
+
+function t4(){
+  log('Test D: Hindi Web Speech...');
+  var u = new SpeechSynthesisUtterance('नमस्ते। यह एक परीक्षण है।');
+  u.lang = 'hi-IN';
   var voices = window.speechSynthesis.getVoices();
-  var ta = voices.find(v => v.lang.startsWith('ta'));
-  if(!ta){ log('No Tamil voice found. Available langs: ' + [...new Set(voices.map(v=>v.lang))].join(', ')); }
-  else { log('Tamil voice found: ' + ta.name + ' | ' + ta.lang); }
-  var u = new SpeechSynthesisUtterance('வணக்கம். இது ஒரு சோதனை.');
-  if(ta) u.voice = ta;
-  u.lang = 'ta-IN';
-  u.onstart = ()=>log('Web Speech Tamil: STARTED');
-  u.onend = ()=>log('Web Speech Tamil: ENDED OK');
-  u.onerror = (e)=>log('Web Speech Tamil: ERROR = ' + e.error);
+  var hi = voices.find(function(v){ return v.lang==='hi-IN'; });
+  if(hi){ u.voice=hi; log('Hindi voice: '+hi.name); }
+  else { log('No hi-IN voice found'); }
+  u.onstart = function(){ log('Test D: STARTED ✅'); };
+  u.onend   = function(){ log('Test D: ENDED OK ✅'); };
+  u.onerror = function(e){ log('Test D: ERROR='+e.error); };
   window.speechSynthesis.speak(u);
 }
 
-function test2(){
-  log('Testing Web Speech API English...');
-  var u = new SpeechSynthesisUtterance('Hello, this is a test of the English voice.');
-  u.lang = 'en-IN';
-  u.onstart = ()=>log('Web Speech English: STARTED');
-  u.onend = ()=>log('Web Speech English: ENDED OK');
-  u.onerror = (e)=>log('Web Speech English: ERROR = ' + e.error);
-  window.speechSynthesis.speak(u);
+function t5(){
+  log('Test E: fetch blob with content-type fix...');
+  var url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
+  fetch(url)
+    .then(function(r){ return r.arrayBuffer(); })
+    .then(function(buf){
+      log('Test E: got '+buf.byteLength+' bytes');
+      // Force audio/mpeg content type
+      var blob = new Blob([buf], {type:'audio/mpeg'});
+      var blobUrl = URL.createObjectURL(blob);
+      var a = new Audio(blobUrl);
+      a.onplay  = function(){ log('Test E: PLAYING ✅'); };
+      a.onended = function(){ log('Test E: ENDED OK ✅'); URL.revokeObjectURL(blobUrl); };
+      a.onerror = function(){ log('Test E: ERROR code='+(a.error&&a.error.code)); };
+      a.play().catch(function(e){ log('Test E: play rejected='+e.message); });
+    })
+    .catch(function(e){ log('Test E: fetch failed='+e.message); });
 }
-
-function test3(){
-  log('Testing Google TTS Direct...');
-  var url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q=' + encodeURIComponent('வணக்கம்');
-  var a = new Audio(url);
-  a.onplay = ()=>log('Google TTS Direct: PLAYING');
-  a.onended = ()=>log('Google TTS Direct: ENDED OK');
-  a.onerror = (e)=>log('Google TTS Direct: ERROR = ' + e.type + ' code=' + (a.error&&a.error.code));
-  a.play().catch(e=>log('Google TTS Direct: PLAY REJECTED = ' + e.message));
-}
-
-function test4(){
-  log('Testing AllOrigins Proxy...');
-  var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q=' + encodeURIComponent('வணக்கம்');
-  var url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(direct);
-  var a = new Audio(url);
-  a.onplay = ()=>log('AllOrigins Proxy: PLAYING');
-  a.onended = ()=>log('AllOrigins Proxy: ENDED OK');
-  a.onerror = (e)=>log('AllOrigins Proxy: ERROR = ' + e.type);
-  a.play().catch(e=>log('AllOrigins Proxy: PLAY REJECTED = ' + e.message));
-}
-
-function test5(){
-  var voices = window.speechSynthesis.getVoices();
-  log('Total voices: ' + voices.length);
-  voices.forEach(v => log(v.lang + ' | ' + v.name + ' | local=' + v.localService));
-}
-
-// Auto-load voices
-window.speechSynthesis.onvoiceschanged = function(){ log('Voices loaded: ' + window.speechSynthesis.getVoices().length); }
+window.speechSynthesis.onvoiceschanged = function(){ log('voices ready: '+window.speechSynthesis.getVoices().length); };
 </script>
 </body>
 </html>
