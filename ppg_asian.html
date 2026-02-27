@@ -4,6 +4,7 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
+  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -542,110 +543,36 @@ function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getE
 function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
 
 // ================================================================
-//  ✅ TTS ENGINE — KEY FIX: Fetch ALL chunks in PARALLEL
-//  then play sequentially. This eliminates the delay between chunks.
-//  Confirmed working methods from your browser tests:
-//  Tamil  → allorigins proxy + arrayBuffer + audio/mpeg blob (Test E fastest)
-//  English → Web Speech API (confirmed works)
+//  ✅ TTS ENGINE — ResponsiveVoice (instant, free, all platforms)
+//  Tamil Female voice plays immediately on click, no delay, no CORS
 // ================================================================
 
-// Split text into ≤180 char chunks
-function _chunks(text){
-  if(!text||text.length<=180) return [text||''];
-  var out=[],words=text.split(' '),cur='';
-  for(var i=0;i<words.length;i++){
-    var w=words[i];
-    if((cur+' '+w).trim().length<=180){ cur=(cur+' '+w).trim(); }
-    else { if(cur)out.push(cur); cur=w.length>180?w.substring(0,180):w; }
-  }
-  if(cur)out.push(cur);
-  return out.filter(function(c){return c.trim();});
-}
-
-// Fetch one chunk → blob URL (Test E method — fastest confirmed)
-function _fetchBlobUrl(chunk){
-  var direct='https://translate.google.com/translate_tts?ie=UTF-8&q='+encodeURIComponent(chunk)+'&tl=ta&client=tw-ob&ttsspeed=0.9';
-  var proxy='https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  return fetch(proxy)
-    .then(function(r){return r.arrayBuffer();})
-    .then(function(buf){
-      var blob=new Blob([buf],{type:'audio/mpeg'});
-      return URL.createObjectURL(blob);
-    });
-}
-
-function speakText(text,btnId){
+function speakText(text, btnId){
   if(!text||!text.trim()) return;
-  if(ttsActive&&activeBtnId===btnId){stopAllAudio();return;}
+  if(ttsActive && activeBtnId===btnId){ stopAllAudio(); return; }
   stopAllAudio();
-  activeBtnId=btnId;
-  setBtnState(btnId,true,'loading');
-  if(lang==='ta-IN'){ _speakTamil(text,btnId); }
-  else { _speakEnglish(text,btnId); }
-}
+  ttsActive=true; activeBtnId=btnId;
+  setBtnState(btnId, true, 'playing');
 
-function _speakTamil(text,btnId){
-  var chunks=_chunks(text);
-  // Fetch ALL chunks in parallel simultaneously
-  var promises=chunks.map(function(c){return _fetchBlobUrl(c);});
-  Promise.all(promises)
-    .then(function(blobUrls){
-      if(!ttsActive){blobUrls.forEach(function(u){URL.revokeObjectURL(u);});return;}
-      setBtnState(btnId,true,'playing');
-      // Play sequentially now all are ready — instant, no gaps
-      function playIdx(i){
-        if(i>=blobUrls.length||!ttsActive){
-          blobUrls.forEach(function(u){URL.revokeObjectURL(u);});
-          ttsActive=false;activeBtnId=null;setBtnState(btnId,false);return;
-        }
-        var a=new Audio(blobUrls[i]);
-        _curAudio=a;
-        a.onended=function(){_curAudio=null;playIdx(i+1);};
-        a.onerror=function(){_curAudio=null;playIdx(i+1);};
-        a.play().catch(function(){_curAudio=null;playIdx(i+1);});
-      }
-      playIdx(0);
-    })
-    .catch(function(){
-      // Parallel fetch failed — fall back to sequential
-      ttsActive=true;
-      setBtnState(btnId,true,'playing');
-      _speakTamilSeq(chunks,0,btnId);
+  var voice = (lang==='ta-IN') ? 'Tamil Female' : 'UK English Female';
+
+  if(typeof responsiveVoice !== 'undefined'){
+    responsiveVoice.speak(text, voice, {
+      rate: 0.9, pitch: 1, volume: 1,
+      onend: function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); },
+      onerror: function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); }
     });
-}
-
-function _speakTamilSeq(chunks,idx,btnId){
-  if(idx>=chunks.length||!ttsActive){ttsActive=false;activeBtnId=null;setBtnState(btnId,false);return;}
-  var direct='https://translate.google.com/translate_tts?ie=UTF-8&q='+encodeURIComponent(chunks[idx])+'&tl=ta&client=tw-ob&ttsspeed=0.9';
-  var proxy='https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  fetch(proxy).then(function(r){return r.arrayBuffer();})
-    .then(function(buf){
-      if(!ttsActive)return;
-      var blob=new Blob([buf],{type:'audio/mpeg'});
-      var url=URL.createObjectURL(blob);
-      var a=new Audio(url);
-      _curAudio=a;
-      a.onended=function(){URL.revokeObjectURL(url);_curAudio=null;_speakTamilSeq(chunks,idx+1,btnId);};
-      a.onerror=function(){URL.revokeObjectURL(url);_curAudio=null;_speakTamilSeq(chunks,idx+1,btnId);};
-      a.play().catch(function(){_speakTamilSeq(chunks,idx+1,btnId);});
-    })
-    .catch(function(){_speakTamilSeq(chunks,idx+1,btnId);});
-}
-
-function _speakEnglish(text,btnId){
-  if(!('speechSynthesis' in window)){setBtnState(btnId,false);activeBtnId=null;return;}
-  window.speechSynthesis.cancel();
-  var u=new SpeechSynthesisUtterance(text);
-  u.lang='en-IN';u.rate=0.88;u.pitch=1;u.volume=1;
-  var voices=window.speechSynthesis.getVoices();
-  var v=voices.find(function(x){return x.lang==='en-IN';})||voices.find(function(x){return x.lang==='en-GB';})||voices.find(function(x){return x.lang.startsWith('en');});
-  if(v)u.voice=v;
-  u.onstart=function(){ttsActive=true;setBtnState(btnId,true,'playing');};
-  u.onend=function(){ttsActive=false;activeBtnId=null;setBtnState(btnId,false);};
-  u.onerror=function(){ttsActive=false;activeBtnId=null;setBtnState(btnId,false);};
-  window.speechSynthesis.speak(u);
-  ttsActive=true;setBtnState(btnId,true,'playing');
-  setTimeout(function(){if(window.speechSynthesis.paused)window.speechSynthesis.resume();},200);
+  } else {
+    // Fallback: Web Speech API
+    if(!('speechSynthesis' in window)){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = (lang==='ta-IN') ? 'ta-IN' : 'en-IN';
+    u.rate=0.88; u.pitch=1; u.volume=1;
+    u.onend=function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); };
+    u.onerror=function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); };
+    window.speechSynthesis.speak(u);
+  }
 }
 
 function stopAllAudio(){
