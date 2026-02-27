@@ -801,28 +801,10 @@ var isRec = false, recog = null, curMicBtn = null, curMicField = null;
 var ttsActive = false;
 var activeBtnId = null;
 var _ttsUtterance = null;
+// For ResponsiveVoice we track the active button separately
 var _rvActive = false;
-var _audioUnlocked = false;  // Chrome desktop audio unlock flag
 
-window.onload = function() {
-  captureGPS();
-  setDate();
-  _preloadVoices();
-  // Unlock Chrome audio context on first user interaction
-  document.addEventListener('click', _unlockAudio, {once: true});
-  document.addEventListener('touchstart', _unlockAudio, {once: true});
-};
-
-// Chrome desktop requires AudioContext to be created/resumed inside a user gesture
-function _unlockAudio() {
-  _audioUnlocked = true;
-  // Also prime speechSynthesis - Chrome won't queue speech until this is called once
-  if ('speechSynthesis' in window) {
-    var u = new SpeechSynthesisUtterance('');
-    u.volume = 0;
-    try { window.speechSynthesis.speak(u); window.speechSynthesis.cancel(); } catch(e){}
-  }
-}
+window.onload = function() { captureGPS(); setDate(); _preloadVoices(); };
 
 function captureGPS() {
   if (navigator.geolocation) {
@@ -1073,211 +1055,159 @@ function checkMilch(){var has=getSelected('milch',false)==='Yes';showHide('qMilc
 function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getElementById('milchCount').value||'0')>0);}
 function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
 
-// Eagerly load voices on page start so first TTS click is instant
+// Preload Web Speech API voices for English
+var _voicesLoaded = false;
 function _preloadVoices() {
   if (!('speechSynthesis' in window)) return;
   var v = window.speechSynthesis.getVoices();
-  if (v.length > 0) { _cachedVoices = v; return; }
+  if (v.length > 0) { _voicesLoaded = true; return; }
   window.speechSynthesis.onvoiceschanged = function() {
-    _cachedVoices = window.speechSynthesis.getVoices();
+    _voicesLoaded = true;
     window.speechSynthesis.onvoiceschanged = null;
   };
-  setTimeout(function(){ var v2=window.speechSynthesis.getVoices(); if(v2.length>0)_cachedVoices=v2; }, 800);
-  setTimeout(function(){ var v2=window.speechSynthesis.getVoices(); if(v2.length>0)_cachedVoices=v2; }, 2500);
+  setTimeout(function(){ window.speechSynthesis.getVoices(); }, 500);
+  setTimeout(function(){ window.speechSynthesis.getVoices(); }, 1500);
 }
 
 // ================================================================
-//  UNIFIED TTS ENGINE  — v5
-//
-//  WHY: ResponsiveVoice "Tamil Female" uses Google's online Tamil voice
-//  when available (Android), but falls back to its own poor server TTS
-//  on desktop (sounds foreign). The fix is to use the Web Speech API
-//  directly and pick voices in a smart priority order:
-//
-//  TAMIL priority order:
-//    1. Any ta-IN / ta-* voice with localService:false  → Google Online (best, same as Android)
-//    2. Any ta-IN / ta-* voice with localService:true   → Device local voice (good on Android)
-//    3. ResponsiveVoice "Tamil Female"                  → RV server (acceptable fallback)
-//    4. Show text banner only                           → Last resort
-//
-//  ENGLISH priority order:
-//    1. Web Speech API en-IN / en-GB / en-*            → Works on all platforms
-//    2. ResponsiveVoice "UK English Female"             → Fallback
-//
-//  This gives consistent, natural Tamil pronunciation on ALL devices.
+//  UNIFIED TTS ENGINE
+//  - English: Uses Web Speech API (works natively everywhere)
+//  - Tamil: Uses ResponsiveVoice (works without device Tamil voice)
 // ================================================================
-
-// Cache voices after first load
-var _cachedVoices = [];
-
-function _getVoices(callback) {
-  if (_cachedVoices.length > 0) { callback(_cachedVoices); return; }
-  if (!('speechSynthesis' in window)) { callback([]); return; }
-
-  var v = window.speechSynthesis.getVoices();
-  if (v.length > 0) { _cachedVoices = v; callback(v); return; }
-
-  // Async load — poll up to 3 seconds
-  var polls = 0;
-  var poll = setInterval(function() {
-    polls++;
-    var v2 = window.speechSynthesis.getVoices();
-    if (v2.length > 0 || polls >= 15) {
-      clearInterval(poll);
-      _cachedVoices = v2;
-      callback(v2);
-    }
-  }, 200);
-}
-
-function _pickTamilVoice(voices) {
-  // Priority 1: Google's online Tamil voice (non-local = streams from Google)
-  // This is the same voice Android uses — sounds natural on desktop too
-  var online = voices.find(function(v) {
-    return v.localService === false && (v.lang === 'ta-IN' || v.lang.startsWith('ta'));
-  });
-  if (online) return online;
-
-  // Priority 2: Any local Tamil voice (good on Android, rare on desktop)
-  var local = voices.find(function(v) {
-    return v.lang === 'ta-IN' || v.lang.startsWith('ta');
-  });
-  if (local) return local;
-
-  // Priority 3: Voice whose name contains "Tamil"
-  var byName = voices.find(function(v) {
-    return (v.name || '').toLowerCase().indexOf('tamil') >= 0;
-  });
-  return byName || null;
-}
-
-function _pickEnglishVoice(voices) {
-  return voices.find(function(v) { return v.lang === 'en-IN'; })
-      || voices.find(function(v) { return v.lang === 'en-GB'; })
-      || voices.find(function(v) { return v.lang.startsWith('en'); })
-      || null;
-}
-
 function speakText(text, btnId) {
   if (!text || !text.trim()) return;
 
-  // Toggle off if same button clicked while playing
-  if (ttsActive && activeBtnId === btnId) { stopAllAudio(); return; }
+  var isTamil = (lang === 'ta-IN');
 
+  // Toggle off if same button clicked again
+  if (ttsActive && activeBtnId === btnId) {
+    stopAllAudio();
+    return;
+  }
+
+  // Stop any currently playing audio first
   stopAllAudio();
 
   activeBtnId = btnId;
   ttsActive = true;
   setBtnState(btnId, true, 'loading');
-  showSpeakingBanner(text, lang === 'ta-IN');
+  showSpeakingBanner(text, isTamil);
 
-  _getVoices(function(voices) {
-    var isTamil = (lang === 'ta-IN');
-
-    if (isTamil) {
-      var taVoice = _pickTamilVoice(voices);
-      if (taVoice) {
-        // We have a real Tamil voice — use Web Speech API
-        _doWebSpeech(text, btnId, taVoice, 0.85);
-      } else {
-        // No Tamil voice on device — use ResponsiveVoice server
-        _doRVSpeak(text, btnId, 'Tamil Female', 0.85);
-      }
-    } else {
-      // English — Web Speech API works reliably everywhere
-      var enVoice = _pickEnglishVoice(voices);
-      if (enVoice) {
-        _doWebSpeech(text, btnId, enVoice, 0.88);
-      } else if (typeof responsiveVoice !== 'undefined') {
-        _doRVSpeak(text, btnId, 'UK English Female', 0.9);
-      } else {
-        // No voice at all — just show the banner text
-        setBtnState(btnId, false);
-        ttsActive = false; activeBtnId = null;
-        updateBannerState(false);
-        setTimeout(hideSpeakingBanner, 6000);
-      }
-    }
-  });
+  if (isTamil) {
+    // ---- TAMIL: Use ResponsiveVoice ----
+    _speakTamil(text, btnId);
+  } else {
+    // ---- ENGLISH: Use Web Speech API ----
+    _speakEnglish(text, btnId);
+  }
 }
 
-function _doWebSpeech(text, btnId, voice, rate) {
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance(text);
-  _ttsUtterance = u;
-  u.voice = voice;
-  u.lang  = voice.lang;
-  u.rate  = rate || 0.88;
-  u.pitch = 1.0;
-  u.volume = 1.0;
-
-  u.onstart = function() { setBtnState(btnId, true, 'playing'); updateBannerState(true); };
-  u.onend   = function() { ttsActive=false; _ttsUtterance=null; activeBtnId=null; setBtnState(btnId,false); hideSpeakingBanner(); };
-  u.onerror = function(e) {
-    ttsActive=false; _ttsUtterance=null; activeBtnId=null; setBtnState(btnId,false);
-    // If the online voice failed (network issue), try RV as backup for Tamil
-    if (lang === 'ta-IN') {
-      _doRVSpeak(text, btnId, 'Tamil Female', 0.85);
-    } else {
-      hideSpeakingBanner();
-    }
-  };
-
-  window.speechSynthesis.speak(u);
-
-  // Chrome bug: sometimes gets stuck in paused state right after speak()
-  setTimeout(function() {
-    if (window.speechSynthesis && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-  }, 300);
-
-  // Update consent button label
-  _updateConsentBtnLabel(true);
-}
-
-function _doRVSpeak(text, btnId, voiceName, rate) {
+function _speakTamil(text, btnId) {
+  // Check if ResponsiveVoice is loaded
   if (typeof responsiveVoice === 'undefined') {
-    // RV not loaded — show banner for reading, reset button
-    setBtnState(btnId, false);
-    ttsActive = false; activeBtnId = null;
-    updateBannerState(false);
-    setTimeout(hideSpeakingBanner, 7000);
+    // Fallback: try Web Speech API with any available voice
+    _speakEnglish(text, btnId);
     return;
   }
 
-  responsiveVoice.speak(text, voiceName, {
-    rate: rate || 0.9,
+  // ResponsiveVoice Tamil Female voice
+  responsiveVoice.speak(text, 'Tamil Female', {
+    rate: 0.85,
     pitch: 1.0,
     volume: 1.0,
     onstart: function() {
       _rvActive = true;
       setBtnState(btnId, true, 'playing');
       updateBannerState(true);
-      _updateConsentBtnLabel(true);
     },
     onend: function() {
-      _rvActive = false; ttsActive = false; activeBtnId = null;
-      setBtnState(btnId, false); hideSpeakingBanner();
-      _updateConsentBtnLabel(false);
+      _rvActive = false;
+      ttsActive = false;
+      activeBtnId = null;
+      setBtnState(btnId, false);
+      hideSpeakingBanner();
     },
     onerror: function() {
-      _rvActive = false; ttsActive = false; activeBtnId = null;
+      _rvActive = false;
+      ttsActive = false;
+      activeBtnId = null;
       setBtnState(btnId, false);
+      // Keep banner for reading
       updateBannerState(false);
       setTimeout(hideSpeakingBanner, 6000);
     }
   });
+
+  // Update label if it's the consent audio button
+  var lbl = document.getElementById('consentAudioLabel');
+  if (lbl && btnId === 'btn-consent-audio') {
+    lbl.textContent = 'நிறுத்த கிளிக் செய்யவும்';
+  }
 }
 
-function _updateConsentBtnLabel(isPlaying) {
-  var lbl = document.getElementById('consentAudioLabel');
-  if (!lbl) return;
-  var isTa = (lang === 'ta-IN');
-  if (isPlaying) {
-    lbl.textContent = isTa ? 'நிறுத்த கிளிக் செய்யவும்' : 'Click to Stop';
+function _speakEnglish(text, btnId) {
+  if (!('speechSynthesis' in window)) {
+    setBtnState(btnId, false);
+    ttsActive = false;
+    activeBtnId = null;
+    setTimeout(hideSpeakingBanner, 5000);
+    return;
+  }
+
+  function doSpeak() {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    _ttsUtterance = u;
+    u.lang = 'en-IN';
+    u.rate = 0.88;
+    u.pitch = 1.0;
+    u.volume = 1.0;
+
+    var voices = window.speechSynthesis.getVoices();
+    var ev = voices.find(function(v){ return v.lang === 'en-IN'; })
+           || voices.find(function(v){ return v.lang === 'en-GB'; })
+           || voices.find(function(v){ return v.lang.startsWith('en'); });
+    if (ev) u.voice = ev;
+
+    u.onstart = function() {
+      setBtnState(btnId, true, 'playing');
+      updateBannerState(true);
+    };
+    u.onend = function() {
+      ttsActive = false;
+      _ttsUtterance = null;
+      activeBtnId = null;
+      setBtnState(btnId, false);
+      hideSpeakingBanner();
+    };
+    u.onerror = function() {
+      ttsActive = false;
+      _ttsUtterance = null;
+      activeBtnId = null;
+      setBtnState(btnId, false);
+      hideSpeakingBanner();
+    };
+
+    window.speechSynthesis.speak(u);
+    // Chrome bug fix
+    setTimeout(function(){
+      if (window.speechSynthesis && window.speechSynthesis.paused) window.speechSynthesis.resume();
+    }, 250);
+  }
+
+  var voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) {
+    var polls = 0;
+    var poll = setInterval(function() {
+      polls++;
+      var v2 = window.speechSynthesis.getVoices();
+      if (v2.length > 0 || polls >= 10) {
+        clearInterval(poll);
+        doSpeak();
+      }
+    }, 200);
   } else {
-    lbl.textContent = isTa ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+    doSpeak();
   }
 }
 
@@ -1368,141 +1298,45 @@ function hideSpeakingBanner() {
 
 // ================================================================
 //  MICROPHONE
-//  Fixes:
-//  1. iOS Safari: needs getUserMedia() before recog.start() to get permission prompt
-//  2. Chrome desktop: works fine with webkitSpeechRecognition
-//  3. Generic: better error messages in Tamil too
 // ================================================================
 function startMic(field) {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var isTa = (lang === 'ta-IN');
-
-  if (!SR) {
-    alert(isTa
-      ? 'குரல் உள்ளீடு Google Chrome அல்லது Edge மட்டுமே ஆதரிக்கப்படுகிறது.'
-      : 'Voice input is only supported in Google Chrome or Edge.');
-    return;
-  }
-
+  if (!SR) { alert('Voice input is only supported in Google Chrome or Edge.'); return; }
   if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-    alert(isTa
-      ? 'குரல் உள்ளீட்டிற்கு HTTPS இணைப்பு தேவை.'
-      : 'Voice input requires a secure (HTTPS) connection.');
-    return;
+    alert('Voice input requires a secure (HTTPS) connection.'); return;
   }
-
   var btn = document.getElementById('mic-' + field);
-
-  // If already recording — stop it
   if (isRec) {
     if (recog) { try { recog.stop(); } catch(e){} }
     isRec = false;
     if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
-    curMicBtn = null; curMicField = null;
-    return;
+    curMicBtn = null; curMicField = null; return;
   }
-
-  // iOS Safari fix: explicitly request microphone permission via getUserMedia FIRST.
-  // This triggers the permission dialog on iOS before we call recog.start().
-  // On non-iOS it resolves immediately with no visible dialog (already granted).
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-  function _doStartRecognition() {
-    recog = new SR();
-    recog.lang = lang;
-    recog.interimResults = false;
-    recog.maxAlternatives = 1;
-    recog.continuous = false;
-
-    recog.onstart = function() {
-      isRec = true;
-      curMicBtn = btn;
-      curMicField = field;
-      if (btn) { btn.classList.add('recording'); btn.textContent = '⏹️'; }
-    };
-
-    recog.onresult = function(e) {
-      var transcript = e.results[0][0].transcript.trim();
-      var numberFields = ['adultMales','adultFemales','children','totalMembers','aadhar','income','schoolDistance','landAcres','milchCount','milkYield'];
-      var isNum = numberFields.indexOf(field) !== -1;
-      var finalVal = transcript;
-      if (isNum) {
-        var num = parseInt(transcript.replace(/[,\s]/g, ''), 10);
-        finalVal = (!isNaN(num) && num >= 0) ? num : transcript;
-      }
-      var audioEl = document.getElementById(field + 'Audio');
-      if (audioEl) audioEl.value = finalVal;
-      if (isNum && typeof finalVal === 'number') {
-        var textEl = document.getElementById(field + 'Text');
-        if (textEl) textEl.value = finalVal;
-      }
-    };
-
-    recog.onerror = function(e) {
-      isRec = false;
-      if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
-      curMicBtn = null; curMicField = null;
-      var msg = '';
-      switch (e.error) {
-        case 'not-allowed':
-        case 'permission-denied':
-          msg = isTa
-            ? 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது.\n\nதீர்வு: Settings → Safari → Microphone → Allow என்று மாற்றவும்.'
-            : 'Microphone permission denied.\n\nFix: In your browser settings, allow microphone access for this site, then reload.';
-          break;
-        case 'no-speech':
-          msg = isTa ? 'பேச்சு கண்டறியவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'No speech detected. Please try again.';
-          break;
-        case 'network':
-          msg = isTa ? 'நெட்வொர்க் பிழை. இணைப்பை சரிபார்க்கவும்.' : 'Network error. Check your internet connection.';
-          break;
-        case 'audio-capture':
-          msg = isTa ? 'மைக்ரோஃபோன் கிடைக்கவில்லை.' : 'Microphone not found or not accessible.';
-          break;
-        default:
-          msg = (isTa ? 'பிழை: ' : 'Error: ') + e.error;
-      }
-      if (msg) alert(msg);
-    };
-
-    recog.onend = function() {
-      isRec = false;
-      if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
-      curMicBtn = null; curMicField = null; recog = null;
-    };
-
-    try {
-      recog.start();
-    } catch(err) {
-      isRec = false;
-      if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤'; }
-      alert((isTa ? 'மைக்ரோஃபோன் தொடங்க முடியவில்லை: ' : 'Could not start microphone: ') + err.message);
+  recog = new SR();
+  recog.lang = lang; recog.interimResults = false; recog.maxAlternatives = 1; recog.continuous = false;
+  recog.onstart = function(){ isRec=true; curMicBtn=btn; curMicField=field; if(btn){btn.classList.add('recording');btn.textContent='⏹️';} };
+  recog.onresult = function(e){
+    var transcript = e.results[0][0].transcript.trim();
+    var numberFields = ['adultMales','adultFemales','children','totalMembers','aadhar','income','schoolDistance','landAcres','milchCount','milkYield'];
+    var isNum = numberFields.indexOf(field) !== -1;
+    var finalVal = transcript;
+    if (isNum) { var num=parseInt(transcript.replace(/[,\s]/g,''),10); finalVal=(!isNaN(num)&&num>=0)?num:transcript; }
+    var audioEl = document.getElementById(field+'Audio'); if(audioEl) audioEl.value = finalVal;
+    if (isNum && typeof finalVal==='number') { var textEl=document.getElementById(field+'Text'); if(textEl) textEl.value=finalVal; }
+  };
+  recog.onerror = function(e){
+    isRec=false; if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';} curMicBtn=null; curMicField=null;
+    var msg='';
+    switch(e.error){
+      case 'not-allowed': case 'permission-denied': msg='Microphone permission denied.\n\nFix: Click 🔒 in address bar → Set Microphone to Allow → Reload.'; break;
+      case 'no-speech': msg='No speech detected. Please try again.'; break;
+      case 'network': msg='Network error. Check your internet connection.'; break;
+      default: msg='Speech error: '+e.error;
     }
-  }
-
-  // On iOS Safari, we MUST call getUserMedia first to trigger the permission popup
-  if ((isIOS || isSafari) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    // Show loading state on button
-    if (btn) { btn.textContent = '⏳'; }
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(function(stream) {
-        // Permission granted — stop the stream immediately (we only needed permission)
-        stream.getTracks().forEach(function(t) { t.stop(); });
-        if (btn) { btn.textContent = '🎤'; }
-        _doStartRecognition();
-      })
-      .catch(function(err) {
-        if (btn) { btn.textContent = '🎤'; }
-        var msg = isTa
-          ? 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது.\n\nதீர்வு: Settings → Safari → Microphone → Allow என்று மாற்றவும்.'
-          : 'Microphone permission denied.\n\nOn iPhone: Go to Settings → Safari → Microphone → Allow.\nOn iPad: Settings → Safari → Microphone → Allow.';
-        alert(msg);
-      });
-  } else {
-    // Chrome desktop, Android Chrome — just start directly
-    _doStartRecognition();
-  }
+    if(msg) alert(msg);
+  };
+  recog.onend = function(){ isRec=false; if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';} curMicBtn=null; curMicField=null; recog=null; };
+  try { recog.start(); } catch(err){ isRec=false; if(btn){btn.classList.remove('recording');btn.textContent='🎤';} alert('Could not start microphone: '+err.message); }
 }
 
 // ================================================================
