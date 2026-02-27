@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
+  <!-- ResponsiveVoice for Tamil TTS support on all devices -->
+  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1565C0 0%,#0D47A1 100%);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center}
@@ -794,132 +796,510 @@ var gpsLat = "", gpsLng = "";
 var isRec = false, recog = null, curMicBtn = null, curMicField = null;
 
 // ================================================================
+//  TTS STATE
 // ================================================================
-//  TTS ENGINE — Google Translate Audio
-//  Uses Google's free TTS service via <audio> element.
-//  Same voice on ALL platforms: desktop Chrome, Android, iOS, Firefox.
-//  No API key. No device voice required. Free.
-//  Works by fetching Google Translate's audio URL and playing it.
-// ================================================================
-
-var _ttsAudio = null;       // current Audio element
-var _ttsChunks = [];        // queue of text chunks to play
-var _ttsChunkIdx = 0;
 var ttsActive = false;
 var activeBtnId = null;
+var _ttsUtterance = null;
+var _rvActive = false;
+var _audioUnlocked = false;  // Chrome desktop audio unlock flag
 
-window.onload = function() { captureGPS(); setDate(); };
+window.onload = function() {
+  captureGPS();
+  setDate();
+  _preloadVoices();
+  // Unlock Chrome audio context on first user interaction
+  document.addEventListener('click', _unlockAudio, {once: true});
+  document.addEventListener('touchstart', _unlockAudio, {once: true});
+};
 
-// Split text into chunks ≤200 chars at sentence/comma boundaries
-function _chunkText(text) {
-  if (text.length <= 200) return [text];
-  var chunks = [];
-  // Split on sentence-ending punctuation or newlines
-  var sentences = text.split(/(?<=[.।!?\n])/);
-  var cur = '';
-  for (var i = 0; i < sentences.length; i++) {
-    var s = sentences[i];
-    if ((cur + s).length <= 200) {
-      cur += s;
-    } else {
-      if (cur) chunks.push(cur.trim());
-      // If single sentence itself is >200, split on comma/space
-      if (s.length > 200) {
-        var words = s.split(' ');
-        cur = '';
-        for (var j = 0; j < words.length; j++) {
-          if ((cur + ' ' + words[j]).length <= 198) {
-            cur += (cur ? ' ' : '') + words[j];
-          } else {
-            if (cur) chunks.push(cur.trim());
-            cur = words[j];
-          }
-        }
-      } else {
-        cur = s;
-      }
+// Chrome desktop requires AudioContext to be created/resumed inside a user gesture
+function _unlockAudio() {
+  _audioUnlocked = true;
+  // Also prime speechSynthesis - Chrome won't queue speech until this is called once
+  if ('speechSynthesis' in window) {
+    var u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    try { window.speechSynthesis.speak(u); window.speechSynthesis.cancel(); } catch(e){}
+  }
+}
+
+function captureGPS() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function(pos) { gpsLat=pos.coords.latitude.toFixed(6); gpsLng=pos.coords.longitude.toFixed(6); var el=document.getElementById('gpsDisplay'); if(el)el.textContent='Lat: '+gpsLat+', Long: '+gpsLng; },
+      function() { var el=document.getElementById('gpsDisplay'); if(el)el.textContent='GPS unavailable'; },
+      { timeout:10000, enableHighAccuracy:true }
+    );
+  }
+}
+
+function setDate() {
+  var d=new Date();
+  var ds=d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear();
+  var el=document.getElementById('dateDisplay'); if(el)el.textContent=ds;
+}
+
+function showProcessingOverlay(on) {
+  var ov=document.getElementById('submit-overlay'); if(!ov)return;
+  var isTa=(lang==='ta-IN');
+  if(on){
+    document.getElementById('overlay-spinner').style.display='block';
+    document.getElementById('overlay-msg').textContent=isTa?'⏳ கணக்கெடுப்பை சமர்ப்பிக்கிறோம்…':'⏳ Submitting your survey…';
+    document.getElementById('overlay-submsg').textContent=isTa?'காத்திருக்கவும். பக்கத்தை மூடாதீர்கள்.':'Please wait. Do not close this page.';
+    ov.classList.add('visible');
+  } else { ov.classList.remove('visible'); }
+}
+
+function selectLang(l) {
+  stopAllAudio(); lang=l;
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('btn-lang-'+(l==='en-IN'?'en':'ta')).classList.add('active');
+  var survey=document.getElementById('stepSurvey');
+  if(survey&&survey.style.display!=='none'){renderAllOptions();updateUILabels();}
+}
+
+function showConsent() {
+  document.getElementById('stepLang').style.display='none';
+  document.getElementById('stepConsent').style.display='block';
+  var t=T[lang].consent;
+  document.getElementById('consentTitle').textContent='📜 '+t.title;
+  document.getElementById('consentText').textContent=t.text;
+  document.getElementById('consentYesLabel').textContent=t.yes;
+  document.getElementById('consentNoLabel').textContent=t.no;
+  document.getElementById('consentProceedLabel').textContent=t.proceed;
+  var lbl=document.getElementById('consentAudioLabel');
+  if(lbl)lbl.textContent=lang==='ta-IN'?'சம்மதத்தை கேளுங்கள்':'Listen to Consent';
+}
+
+function selectConsent(val) {
+  document.querySelectorAll('.consent-opt').forEach(function(o){o.classList.remove('selected');});
+  if(val==='yes'){document.getElementById('consentYesOpt').classList.add('selected');document.getElementById('consentYes').checked=true;}
+  else{document.getElementById('consentNoOpt').classList.add('selected');document.getElementById('consentNo').checked=true;}
+}
+
+function proceedFromConsent() {
+  var yes=document.getElementById('consentYes').checked;
+  var no=document.getElementById('consentNo').checked;
+  if(!yes&&!no){alert(lang==='ta-IN'?'தயவுசெய்து ஒரு விருப்பத்தை தேர்ந்தெடுக்கவும்.':'Please select Yes or No to proceed.');return;}
+  stopAllAudio();
+  if(no){document.getElementById('stepConsent').style.display='none';document.getElementById('appBody').innerHTML='<div style="text-align:center;padding:40px;font-size:16px;color:#555">'+T[lang].consent.declined+'</div>';return;}
+  document.getElementById('stepConsent').style.display='none';
+  document.getElementById('stepSurvey').style.display='block';
+  renderAllOptions(); updateUILabels();
+}
+
+function updateUILabels() {
+  var t=T[lang]; var isTa=lang==='ta-IN';
+  setTxt('sec0Title','📋 '+(isTa?'பிரிவு 0: மெட்டாடேட்டா':'SECTION 0: METADATA'));
+  setTxt('secATitle','👤 '+(isTa?'பிரிவு A: சமூக-ஜனத்தொகை விவரம்':'SECTION A: SOCIO-DEMOGRAPHIC PROFILE'));
+  setTxt('secBTitle','💼 '+(isTa?'பிரிவு B: வாழ்வாதாரம் மற்றும் பொருளாதார நிலை':'SECTION B: LIVELIHOODS & ECONOMIC STATUS'));
+  setTxt('secCTitle','👩‍👩‍👧 '+(isTa?'பிரிவு C: பெண்கள் மேம்பாடு (SHG நிலை)':'SECTION C: WOMEN EMPOWERMENT (SHG STATUS)'));
+  setTxt('secCSubtitle',isTa?'குடும்பத்தின் பெண் தலைவரிடம் மட்டும் கேளுங்கள் | SHG உறுப்பினர் இல்லாவிட்டால் தவிர்க்கவும்':'Ask specifically to the female head of household | Skip if not an SHG Member');
+  setTxt('secDTitle','📚 '+(isTa?'பிரிவு D: கல்வி மற்றும் டிஜிட்டல் அணுகல்':'SECTION D: EDUCATION & DIGITAL ACCESS'));
+  setTxt('secDSubtitle',isTa?'வீட்டில் 5-18 வயது குழந்தைகள் இருந்தால் கேளுங்கள்':'Ask for every child aged 5-18 years in the household');
+  setTxt('secETitle','🏥 '+(isTa?'பிரிவு E: சுகாதாரம், ஊட்டசத்து மற்றும் WASH':'SECTION E: HEALTH, NUTRITION & WASH'));
+  setTxt('secFTitle','🗑️ '+(isTa?'பிரிவு F: கழிவு மேலாண்மை':'SECTION F: WASTE MANAGEMENT (SWM)'));
+  setTxt('secGTitle','🌾 '+(isTa?'பிரிவு G: வேளாண்மை மற்றும் கால்நடை':'SECTION G: AGRICULTURE & LIVESTOCK (NRM)'));
+  setTxt('qVillageText',t.q.villageName); setTxt('qNameText',t.a.name);
+  setTxt('qCasteText',isTa?'சமூக வகை (சாதி)':'Social Category (Caste)');
+  setTxt('qHouseTypeText',t.a.houseType); setTxt('qFamilySizeText',t.a.familySize);
+  setTxt('lblMales',isTa?'வயதுக்கு மேற்பட்ட ஆண்கள் (18+)':'Adult Males (18+)');
+  setTxt('lblFemales',isTa?'வயதுக்கு மேற்பட்ட பெண்கள் (18+)':'Adult Females (18+)');
+  setTxt('lblChildren',isTa?'குழந்தைகள் (0-17)':'Children (0-17)');
+  setTxt('lblTotal',isTa?'மொத்த உறுப்பினர்கள்':'Total Members');
+  setTxt('qHasAadharText',t.a.hasAadhar); setTxt('qAadharNumText',t.a.aadharNum);
+  setTxt('qPrimaryIncomeText',t.b.primaryIncome);
+  setTxt('qMonthlyIncomeText',isTa?'சராசரி மாதாந்திர வருமானம் (INR)':'Average Monthly Household Income (Estimate) – INR');
+  setTxt('qRationCardText',t.b.rationCard);
+  setTxt('qHasLoansText',isTa?'தற்போது நிலுவையில் உள்ள கடன்கள் உள்ளனவா?':'Do you currently have any outstanding loans?');
+  setTxt('qLoanSourceText',isTa?'ஆமெனில்: யாரிடம் கடன் வாங்கினீர்கள்?':'If Yes: Who did you borrow from? (Select all that apply)');
+  setTxt('qMigrationText',t.b.migration); setTxt('qMigrationFreqText',isTa?'ஆமெனில்: எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?':'If Yes: Frequency of return?');
+  setTxt('qSHGMemberText',isTa?'நீங்கள் சுய உதவி குழு (SHG) உறுப்பினரா?':'Are you a member of a Self-Help Group (SHG)?');
+  setTxt('qSHGNameText',t.c.shgName); setTxt('qSHGMeetFreqText',t.c.meetFreq);
+  setTxt('qSHGSavesText',t.c.shgSaves); setTxt('qSHGLoanText',t.c.shgLoan);
+  setTxt('qSHGLoanPurposeText',isTa?'ஆமெனில்: கடன் வாங்கியதன் நோக்கம்?':'If Yes: Purpose of Loan?');
+  setTxt('matD1Row',isTa?'கல்வி நிலை':'Schooling Status');
+  setTxt('matD1Male',t.d.male); setTxt('matD1Female',t.d.female);
+  setTxt('lblEnrolled',t.d.enrolled); setTxt('lblDropout',t.d.dropout); setTxt('lblNeverEnrolled',t.d.neverEnrolled);
+  setTxt('qSchoolMatrixText',isTa?'கல்வி நிலை (மேட்ரிக்ஸ் – ஆண் மற்றும் பெண்)':'Schooling Status (Matrix – Male and Female)');
+  setTxt('qSchoolTypeText',isTa?'(சேர்ந்திருந்தால்) பள்ளி வகை':'(If Enrolled) Type of School');
+  setTxt('qDropoutReasonText',isTa?'(படிப்பை விட்டால்) விட்ட காரணம்':'(If Dropout) Reason for Leaving');
+  setTxt('qTravelSchoolText',t.d.travelSchool); setTxt('lblTravelMode',isTa?'பயண முறை:':'Mode of Travel:');
+  setTxt('lblTravelDistance',isTa?'பள்ளி தூரம் (கி.மீ):':'Distance to School (km):');
+  setTxt('qTuitionText',t.d.tuition); setTxt('qLearningText',t.d.learning);
+  setTxt('qSmartphoneText',t.d.smartphone); setTxt('qInternetText',t.d.internet);
+  setTxt('qWaterSourceText',t.e.waterSource); setTxt('qWaterTreatmentText',t.e.waterTreatment);
+  setTxt('qHasToiletText',t.e.hasToilet);
+  setTxt('qToiletUsableText',isTa?'ஆமெனில்: தற்போது பயன்படுத்த முடிகிறதா?':'If Yes: Is it currently usable (Clean/Water available)?');
+  setTxt('qToiletUsersText',isTa?'ஆமெனில்: யார் பயன்படுத்துகிறார்கள்?':'If Yes: Who uses it?');
+  setTxt('qMenstrualMaterialText',t.e.menstrualMaterial); setTxt('qMenstrualDisposalText',t.e.menstrualDisposal);
+  setTxt('qGreenVegText',t.e.greenVeg); setTxt('qMilkFreqText',t.e.milkFreq);
+  setTxt('qNCDMatrixText',isTa?'மருத்துவர் குடும்பத்தில் யாருக்கும் இந்த நோய்கள் இருப்பதாக சொன்னார்களா?':'Has a doctor told anyone in the family they have: (Number of people for Male and Female separately)');
+  setTxt('ncdCondHeader',isTa?'உடல்நல நிலை':'Health Condition');
+  setTxt('ncdMaleHeader',t.d.male); setTxt('ncdFemaleHeader',t.d.female);
+  setTxt('lblBP',t.e.bp); setTxt('lblDiabetes',t.e.diabetes);
+  setTxt('qWasteSegText',t.f.segregation); setTxt('qWetWasteText',t.f.wetWaste); setTxt('qDryWasteText',t.f.dryWaste);
+  setTxt('qWasteCollectorText',isTa?'தூய்மைக்காவலர் உங்கள் வீட்டிற்கு வருகிறார்களா?':'Does the waste collector (Thooimaikavalar) come to your door?');
+  setTxt('qOwnsLandText',t.g.ownsLand); setTxt('qLandAcresText',isTa?'ஆமெனில்: எத்தனை ஏக்கர்?':'If Yes: How many Acres?');
+  setTxt('qMilchAnimalsText',t.g.milchAnimals); setTxt('qMilchCountText',isTa?'ஆமெனில்: மொத்த எண்ணிக்கை':'If Yes: Total Count of Milch Animals');
+  setTxt('qMilkYieldText',isTa?'ஆமெனில்: தினசரி பால் மொத்த அளவு (லிட்டர்)':'If Yes: Daily Milk Yield (Total Liters)');
+  setTxt('qFodderText',t.g.fodder); setTxt('qCropWaterText',t.g.cropWater);
+  setTxt('submitBtn',isTa?'✅ கணக்கெடுப்பை சமர்ப்பிக்கவும்':'✅ Submit Survey');
+
+  (function(){
+    function ds(id,text){var b=document.getElementById(id);if(b&&text)b.dataset.speak=text;}
+    ds('btn-audio-village',T[lang].q.villageName||''); ds('btn-audio-name',T[lang].a.name||'');
+    ds('btn-audio-caste',T[lang].a.caste||''); ds('btn-audio-house',T[lang].a.houseType||'');
+    ds('btn-audio-family',T[lang].a.familySize||''); ds('btn-audio-hasaadhar',T[lang].a.hasAadhar||'');
+    ds('btn-audio-aadhar',T[lang].a.aadharNum||''); ds('btn-audio-income',T[lang].b.primaryIncome||'');
+    ds('btn-audio-monthlyincome',T[lang].b.monthlyIncome||''); ds('btn-audio-ration',T[lang].b.rationCard||'');
+    ds('btn-audio-loans',T[lang].b.hasLoans||''); ds('btn-audio-loansource',T[lang].b.loanSource||'');
+    ds('btn-audio-migration',T[lang].b.migration||''); ds('btn-audio-migfreq',T[lang].b.migrationFreq||'');
+    ds('btn-audio-shgmember',T[lang].b.shgMember||''); ds('btn-audio-shgname',T[lang].c.shgName||'');
+    ds('btn-audio-shgmeet',T[lang].c.meetFreq||''); ds('btn-audio-shgsaves',T[lang].c.shgSaves||'');
+    ds('btn-audio-shgloan',T[lang].c.shgLoan||''); ds('btn-audio-shgloanpurpose',T[lang].c.shgLoanPurpose||'');
+    ds('btn-audio-school',T[lang].d.schoolStatus||''); ds('btn-mat-male',T[lang].d.male||'');
+    ds('btn-mat-female',T[lang].d.female||''); ds('btn-mat-enrolled',T[lang].d.enrolled||'');
+    ds('btn-mat-dropout',T[lang].d.dropout||''); ds('btn-mat-never',T[lang].d.neverEnrolled||'');
+    ds('btn-audio-schooltype',T[lang].d.schoolType||''); ds('btn-audio-dropoutreason',T[lang].d.dropoutReason||'');
+    ds('btn-audio-travelschool',T[lang].d.travelSchool||''); ds('btn-audio-tuition',T[lang].d.tuition||'');
+    ds('btn-audio-learning',T[lang].d.learning||''); ds('btn-audio-smartphone',T[lang].d.smartphone||'');
+    ds('btn-audio-internet',T[lang].d.internet||''); ds('btn-audio-watersource',T[lang].e.waterSource||'');
+    ds('btn-audio-watertreat',T[lang].e.waterTreatment||''); ds('btn-audio-toilet',T[lang].e.hasToilet||'');
+    ds('btn-audio-toiletusable',T[lang].e.toiletUsable||''); ds('btn-audio-toiletusers',T[lang].e.toiletUsers||'');
+    ds('btn-audio-menstrual',T[lang].e.menstrualMaterial||''); ds('btn-audio-menstrualdisposal',T[lang].e.menstrualDisposal||'');
+    ds('btn-audio-greenveg',T[lang].e.greenVeg||''); ds('btn-audio-milkfreq',T[lang].e.milkFreq||'');
+    ds('btn-audio-ncd',T[lang].e.ncdMatrix||''); ds('btn-audio-wasteseg',T[lang].f.segregation||'');
+    ds('btn-audio-wetwaste',T[lang].f.wetWaste||''); ds('btn-audio-drywaste',T[lang].f.dryWaste||'');
+    ds('btn-audio-wastecollect',T[lang].f.collector||''); ds('btn-audio-land',T[lang].g.ownsLand||'');
+    ds('btn-audio-acres',T[lang].g.landAcres||''); ds('btn-audio-milch',T[lang].g.milchAnimals||'');
+    ds('btn-audio-milchcount',T[lang].g.milchCount||''); ds('btn-audio-milkyield',T[lang].g.milkYield||'');
+    ds('btn-audio-fodder',T[lang].g.fodder||''); ds('btn-audio-cropwater',T[lang].g.cropWater||'');
+  })();
+}
+
+function setTxt(id,text){var el=document.getElementById(id);if(el)el.textContent=text;}
+
+function renderAllOptions() {
+  var t=T[lang]; var en=T['en-IN'];
+  renderRadio('village',t.villageOpts,t.villageOpts,false,'',en.villageOpts);
+  renderRadio('caste',t.aOpts.caste,t.aOpts.caste,false,'',en.aOpts.caste);
+  renderRadio('house',t.aOpts.houseType,t.aOpts.houseType,false,'',en.aOpts.houseType);
+  renderRadio('hasaadhar',t.aOpts.yesNo,t.aOpts.yesNo,false,'checkAadhar',en.aOpts.yesNo);
+  renderRadio('income',t.bOpts.primaryIncome,t.bOpts.primaryIncome,false,'',en.bOpts.primaryIncome);
+  renderRadio('ration',t.bOpts.rationCard,t.bOpts.rationCard,false,'',en.bOpts.rationCard);
+  renderRadio('loans',t.aOpts.yesNo,t.aOpts.yesNo,false,'checkLoans',en.aOpts.yesNo);
+  renderRadio('loansource',t.bOpts.loanSource,t.bOpts.loanSource,true,'',en.bOpts.loanSource);
+  renderRadio('migration',t.aOpts.yesNo,t.aOpts.yesNo,false,'checkMigration',en.aOpts.yesNo);
+  renderRadio('migfreq',t.bOpts.migrationFreq,t.bOpts.migrationFreq,false,'',en.bOpts.migrationFreq);
+  renderRadio('shgmember',t.aOpts.yesNo,t.aOpts.yesNo,false,'checkSHG',en.aOpts.yesNo);
+  renderRadio('shgmeet',t.cOpts.meetFreq,t.cOpts.meetFreq,false,'',en.cOpts.meetFreq);
+  renderRadio('shgsaves',t.cOpts.yesNo,t.cOpts.yesNo,false,'',en.cOpts.yesNo);
+  renderRadio('shgloan',t.cOpts.yesNo,t.cOpts.yesNo,false,'checkSHGLoan',en.cOpts.yesNo);
+  renderRadio('shgloanpurpose',t.cOpts.shgLoanPurpose,t.cOpts.shgLoanPurpose,false,'',en.cOpts.shgLoanPurpose);
+  renderRadio('schooltype',t.dOpts.schoolType,t.dOpts.schoolType,false,'',en.dOpts.schoolType);
+  renderRadio('dropoutreason',t.dOpts.dropoutReason,t.dOpts.dropoutReason,false,'',en.dOpts.dropoutReason);
+  renderRadio('travelmode',t.dOpts.travelMode,t.dOpts.travelMode,false,'',en.dOpts.travelMode);
+  renderRadio('tuition',t.dOpts.yesNo,t.dOpts.yesNo,false,'',en.dOpts.yesNo);
+  renderRadio('learning',t.dOpts.yesNoDK,t.dOpts.yesNoDK,false,'',en.dOpts.yesNoDK);
+  renderRadio('smartphone',t.dOpts.yesNo,t.dOpts.yesNo,false,'',en.dOpts.yesNo);
+  renderRadio('internet',t.dOpts.yesNo,t.dOpts.yesNo,false,'',en.dOpts.yesNo);
+  renderRadio('watersource',t.eOpts.waterSource,t.eOpts.waterSource,false,'',en.eOpts.waterSource);
+  renderRadio('watertreat',t.eOpts.waterTreatment,t.eOpts.waterTreatment,false,'',en.eOpts.waterTreatment);
+  renderRadio('toilet',t.aOpts.yesNo,t.aOpts.yesNo,false,'checkToilet',en.aOpts.yesNo);
+  renderRadio('toiletusable',t.aOpts.yesNo,t.aOpts.yesNo,false,'checkToiletUsable',en.aOpts.yesNo);
+  renderRadio('toiletusers',t.eOpts.toiletUsers,t.eOpts.toiletUsers,false,'',en.eOpts.toiletUsers);
+  renderRadio('menstrual',t.eOpts.menstrualMaterial,t.eOpts.menstrualMaterial,false,'',en.eOpts.menstrualMaterial);
+  renderRadio('menstrualdisposal',t.eOpts.menstrualDisposal,t.eOpts.menstrualDisposal,false,'',en.eOpts.menstrualDisposal);
+  renderRadio('greenveg',t.eOpts.dietFreq,t.eOpts.dietFreq,false,'',en.eOpts.dietFreq);
+  renderRadio('milkfreq',t.eOpts.dietFreq,t.eOpts.dietFreq,false,'',en.eOpts.dietFreq);
+  renderRadio('wasteseg',t.fOpts.segregation,t.fOpts.segregation,false,'',en.fOpts.segregation);
+  renderRadio('wetwaste',t.fOpts.wetWaste,t.fOpts.wetWaste,false,'',en.fOpts.wetWaste);
+  renderRadio('drywaste',t.fOpts.dryWaste,t.fOpts.dryWaste,false,'',en.fOpts.dryWaste);
+  renderRadio('wastecollect',t.fOpts.collector,t.fOpts.collector,false,'',en.fOpts.collector);
+  renderRadio('land',t.gOpts.yesNo,t.gOpts.yesNo,false,'checkLand',en.gOpts.yesNo);
+  renderRadio('milch',t.gOpts.yesNo,t.gOpts.yesNo,false,'checkMilch',en.gOpts.yesNo);
+  renderRadio('fodder',t.gOpts.yesNo,t.gOpts.yesNo,false,'',en.gOpts.yesNo);
+  renderRadio('cropwater',t.gOpts.yesNo,t.gOpts.yesNo,false,'',en.gOpts.yesNo);
+}
+
+function renderRadio(id,labels,audioLabels,isMulti,onChangeFn,values){
+  var container=document.getElementById('opts-'+id); if(!container)return;
+  var type=isMulti?'checkbox':'radio'; var html='';
+  for(var idx=0;idx<labels.length;idx++){
+    var label=labels[idx];
+    var val=(values&&values[idx])?values[idx]:label;
+    var au=(audioLabels[idx]||label).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    var chg=onChangeFn?' onchange="'+onChangeFn+'()"':'';
+    html+='<label class="opt-item" onclick="selectOpt(this,\''+id+'\',\''+type+'\')">'+
+      '<input type="'+type+'" name="'+id+'" value="'+val.replace(/"/g,'&quot;')+'"'+chg+' onchange="updateOptStyle(this)">'+
+      '<span class="opt-label">'+label+'</span>'+
+      '<button class="opt-audio" onclick="event.stopPropagation();event.preventDefault();speakText(\''+au+'\',\'\')">🔊</button>'+
+      '</label>';
+  }
+  container.innerHTML=html;
+}
+
+function selectOpt(labelEl,id,type){
+  if(type==='radio'){
+    document.querySelectorAll('#opts-'+id+' .opt-item').forEach(function(el){el.classList.remove('selected');});
+    labelEl.classList.add('selected');
+    var inp=labelEl.querySelector('input');
+    if(inp){inp.checked=true;inp.dispatchEvent(new Event('change',{bubbles:true}));}
+  } else {
+    var inp=labelEl.querySelector('input');
+    if(inp){inp.checked=!inp.checked;labelEl.classList[inp.checked?'add':'remove']('selected');inp.dispatchEvent(new Event('change',{bubbles:true}));}
+  }
+}
+
+function updateOptStyle(input){var label=input.closest('.opt-item');if(label)label.classList[input.checked?'add':'remove']('selected');}
+function getSelected(id,isMulti){var inputs=document.querySelectorAll('input[name="'+id+'"]:checked');var vals=[];inputs.forEach(function(i){vals.push(i.value);});return isMulti?vals.join(', '):(vals[0]||'');}
+
+function checkAadhar(){showHide('qAadharNum',getSelected('hasaadhar',false)==='Yes');}
+function checkLoans(){showHide('qLoanSource',getSelected('loans',false)==='Yes');}
+function checkMigration(){showHide('qMigrationFreq',getSelected('migration',false)==='Yes');}
+function checkSHG(){showHide('sectionC',getSelected('shgmember',false)==='Yes');}
+function checkSHGLoan(){showHide('qSHGLoanPurpose',getSelected('shgloan',false)==='Yes');}
+function checkSchoolConditions(){
+  var hasEnrolled=parseInt(document.getElementById('enrolledMale').value||'0')>0||parseInt(document.getElementById('enrolledFemale').value||'0')>0;
+  var hasDropout=parseInt(document.getElementById('dropoutMale').value||'0')>0||parseInt(document.getElementById('dropoutFemale').value||'0')>0;
+  showHide('qSchoolType',hasEnrolled); showHide('qDropoutReason',hasDropout);
+}
+function checkToilet(){var has=getSelected('toilet',false)==='Yes';showHide('qToiletUsable',has);if(!has)showHide('qToiletUsers',false);}
+function checkToiletUsable(){showHide('qToiletUsers',getSelected('toiletusable',false)==='Yes');}
+function checkLand(){showHide('qLandAcres',getSelected('land',false)==='Yes');}
+function checkMilch(){var has=getSelected('milch',false)==='Yes';showHide('qMilchCount',has);if(!has)showHide('qMilkYield',false);}
+function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getElementById('milchCount').value||'0')>0);}
+function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
+
+// Eagerly load voices on page start so first TTS click is instant
+function _preloadVoices() {
+  if (!('speechSynthesis' in window)) return;
+  var v = window.speechSynthesis.getVoices();
+  if (v.length > 0) { _cachedVoices = v; return; }
+  window.speechSynthesis.onvoiceschanged = function() {
+    _cachedVoices = window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = null;
+  };
+  setTimeout(function(){ var v2=window.speechSynthesis.getVoices(); if(v2.length>0)_cachedVoices=v2; }, 800);
+  setTimeout(function(){ var v2=window.speechSynthesis.getVoices(); if(v2.length>0)_cachedVoices=v2; }, 2500);
+}
+
+// ================================================================
+//  UNIFIED TTS ENGINE  — v5
+//
+//  WHY: ResponsiveVoice "Tamil Female" uses Google's online Tamil voice
+//  when available (Android), but falls back to its own poor server TTS
+//  on desktop (sounds foreign). The fix is to use the Web Speech API
+//  directly and pick voices in a smart priority order:
+//
+//  TAMIL priority order:
+//    1. Any ta-IN / ta-* voice with localService:false  → Google Online (best, same as Android)
+//    2. Any ta-IN / ta-* voice with localService:true   → Device local voice (good on Android)
+//    3. ResponsiveVoice "Tamil Female"                  → RV server (acceptable fallback)
+//    4. Show text banner only                           → Last resort
+//
+//  ENGLISH priority order:
+//    1. Web Speech API en-IN / en-GB / en-*            → Works on all platforms
+//    2. ResponsiveVoice "UK English Female"             → Fallback
+//
+//  This gives consistent, natural Tamil pronunciation on ALL devices.
+// ================================================================
+
+// Cache voices after first load
+var _cachedVoices = [];
+
+function _getVoices(callback) {
+  if (_cachedVoices.length > 0) { callback(_cachedVoices); return; }
+  if (!('speechSynthesis' in window)) { callback([]); return; }
+
+  var v = window.speechSynthesis.getVoices();
+  if (v.length > 0) { _cachedVoices = v; callback(v); return; }
+
+  // Async load — poll up to 3 seconds
+  var polls = 0;
+  var poll = setInterval(function() {
+    polls++;
+    var v2 = window.speechSynthesis.getVoices();
+    if (v2.length > 0 || polls >= 15) {
+      clearInterval(poll);
+      _cachedVoices = v2;
+      callback(v2);
     }
-  }
-  if (cur.trim()) chunks.push(cur.trim());
-  return chunks.filter(function(c){ return c.length > 0; });
+  }, 200);
 }
 
-function _gttsUrl(text) {
-  var tl = (lang === 'ta-IN') ? 'ta' : 'en';
-  return 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' + tl + '&q=' + encodeURIComponent(text);
-}
-
-function _playChain(chunks, idx, btnId, onDone) {
-  if (idx >= chunks.length || !ttsActive) {
-    onDone();
-    return;
-  }
-  var audio = new Audio();
-  _ttsAudio = audio;
-  audio.src = _gttsUrl(chunks[idx]);
-  // Some browsers need crossOrigin for the audio to load
-  // Do NOT set crossOrigin here — it causes CORS failure with Google TTS
-  audio.oncanplaythrough = null;
-  audio.onended = function() {
-    _playChain(chunks, idx + 1, btnId, onDone);
-  };
-  audio.onerror = function() {
-    // One chunk failed — try next
-    _playChain(chunks, idx + 1, btnId, onDone);
-  };
-  // Show progress in banner if multiple chunks
-  if (chunks.length > 1) {
-    showSpeakingBanner(chunks[idx], lang === 'ta-IN');
-  }
-  audio.play().catch(function(e) {
-    // Autoplay blocked — stop everything
-    stopAllAudio();
-    var isTa = (lang === 'ta-IN');
-    alert(isTa
-      ? 'ஒலி இயங்கவில்லை. பக்கத்தை மீண்டும் ஏற்றவும், பிறகு ஸ்பீக்கர் பட்டனை அழுத்தவும்.'
-      : 'Audio blocked. Please interact with the page first, then tap the speaker.');
+function _pickTamilVoice(voices) {
+  // Priority 1: Google's online Tamil voice (non-local = streams from Google)
+  // This is the same voice Android uses — sounds natural on desktop too
+  var online = voices.find(function(v) {
+    return v.localService === false && (v.lang === 'ta-IN' || v.lang.startsWith('ta'));
   });
+  if (online) return online;
+
+  // Priority 2: Any local Tamil voice (good on Android, rare on desktop)
+  var local = voices.find(function(v) {
+    return v.lang === 'ta-IN' || v.lang.startsWith('ta');
+  });
+  if (local) return local;
+
+  // Priority 3: Voice whose name contains "Tamil"
+  var byName = voices.find(function(v) {
+    return (v.name || '').toLowerCase().indexOf('tamil') >= 0;
+  });
+  return byName || null;
+}
+
+function _pickEnglishVoice(voices) {
+  return voices.find(function(v) { return v.lang === 'en-IN'; })
+      || voices.find(function(v) { return v.lang === 'en-GB'; })
+      || voices.find(function(v) { return v.lang.startsWith('en'); })
+      || null;
 }
 
 function speakText(text, btnId) {
   if (!text || !text.trim()) return;
 
-  // Toggle off if same button clicked again
-  if (ttsActive && activeBtnId === btnId) {
-    stopAllAudio();
-    return;
-  }
+  // Toggle off if same button clicked while playing
+  if (ttsActive && activeBtnId === btnId) { stopAllAudio(); return; }
 
   stopAllAudio();
 
   activeBtnId = btnId;
   ttsActive = true;
-  setBtnState(btnId, true, 'playing');
+  setBtnState(btnId, true, 'loading');
   showSpeakingBanner(text, lang === 'ta-IN');
 
-  // Update consent button label
-  var lbl = document.getElementById('consentAudioLabel');
-  if (lbl && btnId === 'btn-consent-audio') {
-    lbl.textContent = (lang === 'ta-IN') ? 'நிறுத்த கிளிக் செய்யவும்' : 'Click to Stop';
-  }
+  _getVoices(function(voices) {
+    var isTamil = (lang === 'ta-IN');
 
-  var chunks = _chunkText(text);
-  _playChain(chunks, 0, btnId, function() {
-    if (activeBtnId === btnId) {
-      stopAllAudio();
+    if (isTamil) {
+      var taVoice = _pickTamilVoice(voices);
+      if (taVoice) {
+        // We have a real Tamil voice — use Web Speech API
+        _doWebSpeech(text, btnId, taVoice, 0.85);
+      } else {
+        // No Tamil voice on device — use ResponsiveVoice server
+        _doRVSpeak(text, btnId, 'Tamil Female', 0.85);
+      }
+    } else {
+      // English — Web Speech API works reliably everywhere
+      var enVoice = _pickEnglishVoice(voices);
+      if (enVoice) {
+        _doWebSpeech(text, btnId, enVoice, 0.88);
+      } else if (typeof responsiveVoice !== 'undefined') {
+        _doRVSpeak(text, btnId, 'UK English Female', 0.9);
+      } else {
+        // No voice at all — just show the banner text
+        setBtnState(btnId, false);
+        ttsActive = false; activeBtnId = null;
+        updateBannerState(false);
+        setTimeout(hideSpeakingBanner, 6000);
+      }
     }
   });
 }
 
-function stopAllAudio() {
-  if (_ttsAudio) {
-    try { _ttsAudio.pause(); _ttsAudio.src = ''; } catch(e){}
-    _ttsAudio = null;
+function _doWebSpeech(text, btnId, voice, rate) {
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  _ttsUtterance = u;
+  u.voice = voice;
+  u.lang  = voice.lang;
+  u.rate  = rate || 0.88;
+  u.pitch = 1.0;
+  u.volume = 1.0;
+
+  u.onstart = function() { setBtnState(btnId, true, 'playing'); updateBannerState(true); };
+  u.onend   = function() { ttsActive=false; _ttsUtterance=null; activeBtnId=null; setBtnState(btnId,false); hideSpeakingBanner(); };
+  u.onerror = function(e) {
+    ttsActive=false; _ttsUtterance=null; activeBtnId=null; setBtnState(btnId,false);
+    // If the online voice failed (network issue), try RV as backup for Tamil
+    if (lang === 'ta-IN') {
+      _doRVSpeak(text, btnId, 'Tamil Female', 0.85);
+    } else {
+      hideSpeakingBanner();
+    }
+  };
+
+  window.speechSynthesis.speak(u);
+
+  // Chrome bug: sometimes gets stuck in paused state right after speak()
+  setTimeout(function() {
+    if (window.speechSynthesis && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+  }, 300);
+
+  // Update consent button label
+  _updateConsentBtnLabel(true);
+}
+
+function _doRVSpeak(text, btnId, voiceName, rate) {
+  if (typeof responsiveVoice === 'undefined') {
+    // RV not loaded — show banner for reading, reset button
+    setBtnState(btnId, false);
+    ttsActive = false; activeBtnId = null;
+    updateBannerState(false);
+    setTimeout(hideSpeakingBanner, 7000);
+    return;
   }
+
+  responsiveVoice.speak(text, voiceName, {
+    rate: rate || 0.9,
+    pitch: 1.0,
+    volume: 1.0,
+    onstart: function() {
+      _rvActive = true;
+      setBtnState(btnId, true, 'playing');
+      updateBannerState(true);
+      _updateConsentBtnLabel(true);
+    },
+    onend: function() {
+      _rvActive = false; ttsActive = false; activeBtnId = null;
+      setBtnState(btnId, false); hideSpeakingBanner();
+      _updateConsentBtnLabel(false);
+    },
+    onerror: function() {
+      _rvActive = false; ttsActive = false; activeBtnId = null;
+      setBtnState(btnId, false);
+      updateBannerState(false);
+      setTimeout(hideSpeakingBanner, 6000);
+    }
+  });
+}
+
+function _updateConsentBtnLabel(isPlaying) {
+  var lbl = document.getElementById('consentAudioLabel');
+  if (!lbl) return;
+  var isTa = (lang === 'ta-IN');
+  if (isPlaying) {
+    lbl.textContent = isTa ? 'நிறுத்த கிளிக் செய்யவும்' : 'Click to Stop';
+  } else {
+    lbl.textContent = isTa ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+  }
+}
+
+function stopAllAudio() {
+  // Stop ResponsiveVoice (Tamil)
+  if (typeof responsiveVoice !== 'undefined') {
+    try { responsiveVoice.cancel(); } catch(e){}
+  }
+  _rvActive = false;
+
+  // Stop Web Speech API (English)
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e){}
+  }
+  _ttsUtterance = null;
+
+  // Reset state
   if (activeBtnId) setBtnState(activeBtnId, false);
   ttsActive = false;
   activeBtnId = null;
   hideSpeakingBanner();
+
   // Reset consent button label
   var lbl = document.getElementById('consentAudioLabel');
   if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
@@ -929,10 +1309,12 @@ function stopAllAudio() {
 
 function setBtnState(btnId, on, state) {
   if (!btnId) return;
-  var b = document.getElementById(btnId); if (!b) return;
+  var b = document.getElementById(btnId);
+  if (!b) return;
   b.classList.remove('loading', 'playing');
   if (!on) {
     b.textContent = '🔊';
+    // Special case: consent button has different inner structure
     if (btnId === 'btn-consent-audio') {
       var lbl = document.getElementById('consentAudioLabel');
       if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
@@ -940,30 +1322,49 @@ function setBtnState(btnId, on, state) {
     }
     return;
   }
-  b.textContent = '⏹️';
-  b.classList.add('playing');
+  if (state === 'loading') {
+    b.textContent = '⏳';
+    b.classList.add('loading');
+  } else {
+    b.textContent = '⏹️';
+    b.classList.add('playing');
+    if (btnId === 'btn-consent-audio') {
+      b.classList.add('playing');
+      var lbl = document.getElementById('consentAudioLabel');
+      if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'நிறுத்த கிளிக் செய்யவும்' : 'Click to Stop';
+    }
+  }
 }
 
 function toggleConsentAudio() {
-  if (ttsActive && activeBtnId === 'btn-consent-audio') { stopAllAudio(); return; }
+  if (ttsActive && activeBtnId === 'btn-consent-audio') {
+    stopAllAudio();
+    return;
+  }
   speakText(T[lang].consent.text, 'btn-consent-audio');
 }
 
 function showSpeakingBanner(text, isTamil) {
   var p = document.getElementById('tts-popup'); if (!p) return;
-  var preview = text.length > 160 ? text.substring(0, 160) + '…' : text;
+  var preview = text.length > 180 ? text.substring(0, 180) + '…' : text;
   p.innerHTML = '<div style="font-size:11px;opacity:0.7;margin-bottom:4px">'
     + (isTamil ? '🔊 பேசுகிறது...' : '🔊 Speaking...')
     + '</div><div style="font-size:14px;line-height:1.5">' + preview + '</div>';
-  p.style.background = '#1B5E20';
+  p.style.background = '#0D47A1';
   p.style.display = 'block';
+  clearTimeout(p._t);
+}
+
+function updateBannerState(speaking) {
+  var p = document.getElementById('tts-popup');
+  if (!p || p.style.display === 'none') return;
+  p.style.background = speaking ? '#1B5E20' : '#0D47A1';
 }
 
 function hideSpeakingBanner() {
   var p = document.getElementById('tts-popup');
-  if (p) { p.style.display = 'none'; }
+  if (p) { p.style.display = 'none'; clearTimeout(p._t); }
 }
-
 
 // ================================================================
 //  MICROPHONE
