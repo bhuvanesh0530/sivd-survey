@@ -848,19 +848,60 @@ function _playTamilChunks(chunks, idx, onDone) {
   var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(chunks[idx]);
   var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
 
-  function tryDirect() {
-    var a2 = new Audio(direct);
-    _ttsAudio = a2;
-    a2.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
-    a2.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
-    a2.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
-  }
-
-  var a = new Audio(proxyUrl);
-  _ttsAudio = a;
-  a.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
-  a.onerror = function(){ _ttsAudio=null; tryDirect(); };
-  a.play().catch(function(){ _ttsAudio=null; tryDirect(); });
+  // METHOD: Test E (fastest) -> Test B -> Test A -> done
+  // Step 1: fetch proxy -> arrayBuffer -> force audio/mpeg blob (Test E - fastest)
+  fetch(proxyUrl)
+    .then(function(r){ return r.arrayBuffer(); })
+    .then(function(buf){
+      if (!ttsActive) return;
+      var blob = new Blob([buf], {type:'audio/mpeg'});
+      var blobUrl = URL.createObjectURL(blob);
+      var a = new Audio(blobUrl);
+      _ttsAudio = a;
+      a.onended = function(){
+        URL.revokeObjectURL(blobUrl);
+        _playTamilChunks(chunks, idx+1, onDone);
+      };
+      a.onerror = function(){
+        URL.revokeObjectURL(blobUrl);
+        _ttsAudio = null;
+        // Step 2: fetch proxy -> blob without forcing type (Test B)
+        fetch(proxyUrl)
+          .then(function(r2){ return r2.blob(); })
+          .then(function(blob2){
+            if (!ttsActive) return;
+            var blobUrl2 = URL.createObjectURL(blob2);
+            var a2 = new Audio(blobUrl2);
+            _ttsAudio = a2;
+            a2.onended = function(){ URL.revokeObjectURL(blobUrl2); _playTamilChunks(chunks, idx+1, onDone); };
+            a2.onerror = function(){
+              URL.revokeObjectURL(blobUrl2);
+              _ttsAudio = null;
+              // Step 3: AllOrigins direct audio element (Test A)
+              var a3 = new Audio(proxyUrl);
+              _ttsAudio = a3;
+              a3.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
+              a3.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
+              a3.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
+            };
+            a2.play().catch(function(){ if(onDone) onDone('error'); });
+          })
+          .catch(function(){ if(onDone) onDone('error'); });
+      };
+      a.play().catch(function(e){
+        URL.revokeObjectURL(blobUrl);
+        _ttsAudio = null;
+        if(onDone) onDone('error');
+      });
+    })
+    .catch(function(){
+      // fetch totally failed — try AllOrigins direct audio element (Test A)
+      var a3 = new Audio(proxyUrl);
+      _ttsAudio = a3;
+      a3.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
+      a3.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
+      a3.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
+    });
 }
 
 function _speakEnglish(text, onEnd) {
