@@ -1,88 +1,73 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>TTS Test</title>
+<head><meta charset="UTF-8"><title>TTS Test 2</title>
 <style>
 body{font-family:Arial;padding:30px;max-width:500px;margin:0 auto}
-button{display:block;width:100%;padding:15px;margin:10px 0;font-size:16px;cursor:pointer;border-radius:8px;border:none;color:white}
-.r{background:#e53935}.g{background:#2e7d32}.b{background:#1565C0}
-#result{padding:15px;background:#f5f5f5;border-radius:8px;margin-top:20px;font-size:14px;min-height:50px}
+button{display:block;width:100%;padding:15px;margin:10px 0;font-size:16px;cursor:pointer;border-radius:8px;border:none;color:white;background:#1565C0}
+#result{padding:15px;background:#f5f5f5;border-radius:8px;margin-top:20px;font-size:13px;min-height:60px}
 </style>
 </head>
 <body>
-<h2>🔊 TTS Test — Click each button</h2>
-<p>Tell me which buttons actually play audio:</p>
+<h2>🔊 Tamil TTS Test</h2>
 
-<button class="b" onclick="test1()">Test 1: Web Speech API - Tamil</button>
-<button class="b" onclick="test2()">Test 2: Web Speech API - English</button>
-<button class="g" onclick="test3()">Test 3: ResponsiveVoice - Tamil Female</button>
-<button class="g" onclick="test4()">Test 4: ResponsiveVoice - UK English Female</button>
-<button class="r" onclick="stopAll()">⏹ STOP ALL</button>
+<button onclick="test1()">Test 1: Google TTS direct &lt;audio&gt; tag</button>
+<button onclick="test2()">Test 2: Google TTS fetch→blob</button>
+<button onclick="test3()">Test 3: MyMemory TTS API</button>
+<button onclick="test4()">Test 4: VoiceRSS API</button>
 
-<div id="result">Results will appear here...</div>
+<div id="result">Click a button...</div>
 
-<script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 <script>
-var log = document.getElementById('result');
-function add(msg){ log.innerHTML += '<br>'+msg; console.log(msg); }
+var log=document.getElementById('result');
+function add(m){log.innerHTML+='<br>'+m;}
+
+var TEXT='வணக்கம். உங்கள் கிராமத்தின் பெயர் என்ன?';
 
 function test1(){
-  log.innerHTML = 'Test 1 started...';
-  if(!window.speechSynthesis){ add('❌ speechSynthesis NOT supported'); return; }
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance('வணக்கம். உங்கள் பெயர் என்ன?');
-  u.lang = 'ta-IN'; u.rate = 0.9;
-  u.onstart = function(){ add('✅ Test 1 PLAYING'); }
-  u.onend = function(){ add('✅ Test 1 ENDED'); }
-  u.onerror = function(e){ add('❌ Test 1 ERROR: '+e.error); }
-  window.speechSynthesis.speak(u);
+  log.innerHTML='Test 1: Google direct audio...';
+  var url='https://translate.google.com/translate_tts?ie=UTF-8&q='+encodeURIComponent(TEXT)+'&tl=ta&client=tw-ob&ttsspeed=0.9';
+  var a=new Audio(url);
+  a.onplay=function(){add('✅ PLAYING');}
+  a.onended=function(){add('✅ ENDED');}
+  a.onerror=function(e){add('❌ ERROR: '+e.type+' code:'+a.error?.code);}
+  a.play().then(function(){add('play() resolved')}).catch(function(e){add('❌ play() rejected: '+e.message);});
 }
 
 function test2(){
-  log.innerHTML = 'Test 2 started...';
-  if(!window.speechSynthesis){ add('❌ NOT supported'); return; }
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance('Hello. What is your name?');
-  u.lang = 'en-IN'; u.rate = 0.9;
-  u.onstart = function(){ add('✅ Test 2 PLAYING'); }
-  u.onend = function(){ add('✅ Test 2 ENDED'); }
-  u.onerror = function(e){ add('❌ Test 2 ERROR: '+e.error); }
-  window.speechSynthesis.speak(u);
+  log.innerHTML='Test 2: fetch→blob...';
+  var url='https://translate.google.com/translate_tts?ie=UTF-8&q='+encodeURIComponent(TEXT)+'&tl=ta&client=tw-ob&ttsspeed=0.9';
+  fetch(url,{mode:'cors'})
+    .then(function(r){add('fetch status:'+r.status);return r.blob();})
+    .then(function(b){
+      add('blob size:'+b.size);
+      var burl=URL.createObjectURL(b);
+      var a=new Audio(burl);
+      a.onplay=function(){add('✅ PLAYING');}
+      a.onended=function(){add('✅ ENDED');}
+      a.onerror=function(){add('❌ audio error');}
+      a.play().catch(function(e){add('❌ '+e.message);});
+    })
+    .catch(function(e){add('❌ fetch failed: '+e.message);});
 }
 
 function test3(){
-  log.innerHTML = 'Test 3 started...';
-  if(typeof responsiveVoice === 'undefined'){ add('❌ ResponsiveVoice NOT loaded'); return; }
-  add('ResponsiveVoice loaded: '+responsiveVoice.voiceSupport());
-  responsiveVoice.speak('வணக்கம். உங்கள் கிராமத்தின் பெயர் என்ன?', 'Tamil Female', {
-    rate: 0.9,
-    onstart: function(){ add('✅ Test 3 PLAYING - Tamil Female'); },
-    onend: function(){ add('✅ Test 3 ENDED'); },
-    onerror: function(){ add('❌ Test 3 ERROR'); }
-  });
+  log.innerHTML='Test 3: MyMemory API...';
+  var url='https://api.mymemory.translated.net/api/tts?q='+encodeURIComponent('வணக்கம்')+'&lang=ta-IN';
+  var a=new Audio(url);
+  a.onplay=function(){add('✅ PLAYING');}
+  a.onended=function(){add('✅ ENDED');}
+  a.onerror=function(){add('❌ ERROR');}
+  a.play().catch(function(e){add('❌ '+e.message);});
 }
 
 function test4(){
-  log.innerHTML = 'Test 4 started...';
-  if(typeof responsiveVoice === 'undefined'){ add('❌ ResponsiveVoice NOT loaded'); return; }
-  responsiveVoice.speak('Hello. What is your village name?', 'UK English Female', {
-    rate: 0.9,
-    onstart: function(){ add('✅ Test 4 PLAYING - UK English Female'); },
-    onend: function(){ add('✅ Test 4 ENDED'); },
-    onerror: function(){ add('❌ Test 4 ERROR'); }
-  });
-}
-
-function stopAll(){
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
-  if(typeof responsiveVoice !== 'undefined') responsiveVoice.cancel();
-  add('⏹ Stopped all');
-}
-
-window.onload = function(){
-  var voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-  add('Browser voices count: '+voices.length);
-  add('Tamil voices: '+voices.filter(function(v){return v.lang.includes('ta')}).map(function(v){return v.name}).join(', ')||'none');
-  add('ResponsiveVoice: '+(typeof responsiveVoice !== 'undefined' ? 'LOADED ✅' : 'NOT loaded ❌'));
+  log.innerHTML='Test 4: VoiceRSS...';
+  var url='https://api.voicerss.org/?key=bc75f14e4f2f42ada91bb93ba12fb8b6&hl=ta-in&src='+encodeURIComponent('வணக்கம்')+'&c=MP3&f=16khz_16bit_stereo';
+  var a=new Audio(url);
+  a.onplay=function(){add('✅ PLAYING');}
+  a.onended=function(){add('✅ ENDED');}
+  a.onerror=function(){add('❌ ERROR');}
+  a.play().catch(function(e){add('❌ '+e.message);});
 }
 </script>
 </body>
