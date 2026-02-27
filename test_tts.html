@@ -1,96 +1,167 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>TTS Test 2</title></head>
+<head><meta charset="UTF-8"><title>TTS Diagnostic</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:sans-serif;padding:20px;background:#f0f4ff}
+button{padding:12px 20px;margin:8px;border:none;border-radius:8px;font-size:15px;cursor:pointer}
+.test-btn{background:#1565C0;color:white;width:100%}
+.result{padding:10px;margin:6px 0;border-radius:8px;font-size:13px;font-family:monospace}
+.ok{background:#d4edda;color:#155724}
+.fail{background:#f8d7da;color:#721c24}
+.info{background:#d1ecf1;color:#0c5460}
+.warn{background:#fff3cd;color:#856404}
+h3{color:#1565C0;margin-top:16px}
+</style>
+</head>
 <body>
-<h2>Tamil Audio Test</h2>
-<p id="status">Ready</p>
-<br>
-<button onclick="t1()">Test A: AllOrigins proxy (audio element)</button><br><br>
-<button onclick="t2()">Test B: AllOrigins proxy (fetch + blob)</button><br><br>
-<button onclick="t3()">Test C: corsproxy.io</button><br><br>
-<button onclick="t4()">Test D: Hindi Web Speech (hi-IN exists on your PC)</button><br><br>
-<button onclick="t5()">Test E: Direct play after user click</button>
-<pre id="log" style="font-size:13px;margin-top:10px"></pre>
+<h2>🔧 Tamil TTS Diagnostic Tool</h2>
+<p style="font-size:13px;color:#666">This tool shows exactly WHY Tamil audio is not working on your device.</p>
+
+<h3>Step 1: Check Speech Synthesis Support</h3>
+<div id="support-result"></div>
+
+<h3>Step 2: Load & List All Voices</h3>
+<button class="test-btn" onclick="listVoices()">🔍 Show All Available Voices</button>
+<div id="voices-result"></div>
+
+<h3>Step 3: Test Tamil Speech</h3>
+<button class="test-btn" onclick="testTamil()">🔊 Test Tamil: "வணக்கம்"</button>
+<button class="test-btn" onclick="testEnglish()">🔊 Test English: "Hello"</button>
+<div id="speech-result"></div>
+
+<h3>Step 4: Tamil Voice Install Instructions</h3>
+<div id="install-instructions"></div>
+
 <script>
-function log(m){document.getElementById('log').textContent+=m+'\n';document.getElementById('status').textContent=m;console.log(m);}
+var log = function(containerId, msg, type) {
+  var d = document.getElementById(containerId);
+  var div = document.createElement('div');
+  div.className = 'result ' + (type||'info');
+  div.textContent = msg;
+  d.appendChild(div);
+};
 
-var tamil = 'வணக்கம். இது ஒரு சோதனை.';
-var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(tamil);
+// Step 1: Check support
+(function(){
+  if (!('speechSynthesis' in window)) {
+    log('support-result','❌ Web Speech API NOT supported in this browser. Use Chrome or Samsung Internet.','fail');
+  } else {
+    log('support-result','✅ Web Speech API is supported','ok');
+  }
+  log('support-result','Browser: ' + navigator.userAgent.substring(0,80),'info');
+  log('support-result','Protocol: ' + location.protocol + ' (must be https for speech to work)','info');
+})();
 
-function t1(){
-  log('Test A: AllOrigins audio element...');
-  var url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  var a = new Audio(url);
-  a.oncanplay = function(){ log('Test A: canplay fired, duration='+a.duration); };
-  a.onplay   = function(){ log('Test A: PLAYING'); };
-  a.onended  = function(){ log('Test A: ENDED OK ✅'); };
-  a.onerror  = function(){ log('Test A: ERROR code='+( a.error&&a.error.code)+' msg='+(a.error&&a.error.message)); };
-  a.play().then(function(){ log('Test A: play() resolved'); }).catch(function(e){ log('Test A: play() rejected = '+e.message); });
+function listVoices() {
+  var d = document.getElementById('voices-result');
+  d.innerHTML = '';
+  
+  function showVoices() {
+    var voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      log('voices-result','⚠️ No voices loaded yet. Wait 2 seconds and try again.','warn');
+      return;
+    }
+    log('voices-result','Total voices: ' + voices.length,'info');
+    
+    var tamilVoices = voices.filter(function(v){ return v.lang.startsWith('ta') || v.name.toLowerCase().indexOf('tamil') >= 0; });
+    var indianVoices = voices.filter(function(v){ return v.lang.indexOf('IN') >= 0 || v.lang.indexOf('in') >= 0; });
+    
+    if (tamilVoices.length > 0) {
+      log('voices-result','✅ TAMIL VOICES FOUND: ' + tamilVoices.length,'ok');
+      tamilVoices.forEach(function(v){ log('voices-result','  → ' + v.name + ' | ' + v.lang + ' | ' + (v.localService?'LOCAL':'ONLINE'),'ok'); });
+    } else {
+      log('voices-result','❌ NO TAMIL VOICES FOUND on this device','fail');
+      log('voices-result','This is WHY Tamil audio does not work','fail');
+    }
+    
+    if (indianVoices.length > 0) {
+      log('voices-result','Indian voices available: ' + indianVoices.map(function(v){return v.name+' ('+v.lang+')'}).join(', '),'info');
+    }
+    
+    log('voices-result','All voices: ' + voices.map(function(v){return v.lang}).join(', '),'info');
+  }
+  
+  showVoices();
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = function(){ showVoices(); };
+  }
+  setTimeout(showVoices, 1000);
+  setTimeout(showVoices, 3000);
 }
 
-function t2(){
-  log('Test B: fetch+blob...');
-  var url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  fetch(url)
-    .then(function(r){
-      log('Test B: fetch status='+r.status+' type='+r.headers.get('content-type'));
-      return r.blob();
-    })
-    .then(function(blob){
-      log('Test B: blob size='+blob.size+' type='+blob.type);
-      var blobUrl = URL.createObjectURL(blob);
-      var a = new Audio(blobUrl);
-      a.onplay  = function(){ log('Test B: PLAYING ✅'); };
-      a.onended = function(){ log('Test B: ENDED OK ✅'); };
-      a.onerror = function(){ log('Test B: ERROR'); };
-      a.play().catch(function(e){ log('Test B: play rejected='+e.message); });
-    })
-    .catch(function(e){ log('Test B: fetch failed='+e.message); });
-}
-
-function t3(){
-  log('Test C: corsproxy.io...');
-  var url = 'https://corsproxy.io/?'+encodeURIComponent(direct);
-  var a = new Audio(url);
-  a.onplay  = function(){ log('Test C: PLAYING ✅'); };
-  a.onended = function(){ log('Test C: ENDED OK ✅'); };
-  a.onerror = function(){ log('Test C: ERROR code='+(a.error&&a.error.code)); };
-  a.play().catch(function(e){ log('Test C: play rejected='+e.message); });
-}
-
-function t4(){
-  log('Test D: Hindi Web Speech...');
-  var u = new SpeechSynthesisUtterance('नमस्ते। यह एक परीक्षण है।');
-  u.lang = 'hi-IN';
+function testTamil() {
+  var d = document.getElementById('speech-result');
+  d.innerHTML = '';
+  window.speechSynthesis.cancel();
+  
+  var u = new SpeechSynthesisUtterance('வணக்கம். நான் பேசுகிறேன். இது தமிழ் மொழி சோதனை.');
+  u.lang = 'ta-IN';
+  u.rate = 0.8;
+  u.volume = 1;
+  
   var voices = window.speechSynthesis.getVoices();
-  var hi = voices.find(function(v){ return v.lang==='hi-IN'; });
-  if(hi){ u.voice=hi; log('Hindi voice: '+hi.name); }
-  else { log('No hi-IN voice found'); }
-  u.onstart = function(){ log('Test D: STARTED ✅'); };
-  u.onend   = function(){ log('Test D: ENDED OK ✅'); };
-  u.onerror = function(e){ log('Test D: ERROR='+e.error); };
+  var tv = voices.find(function(v){ return v.lang.startsWith('ta'); });
+  if (tv) { u.voice = tv; log('speech-result','Using voice: ' + tv.name,'info'); }
+  else { log('speech-result','⚠️ No Tamil voice found - using default (may not pronounce Tamil correctly)','warn'); }
+  
+  u.onstart = function(){ log('speech-result','✅ Audio STARTED playing','ok'); };
+  u.onend   = function(){ log('speech-result','✅ Audio finished','ok'); };
+  u.onerror = function(e){ log('speech-result','❌ Error: ' + e.error + ' - ' + (e.message||''),'fail'); };
+  
+  window.speechSynthesis.speak(u);
+  log('speech-result','Attempting to speak Tamil...','info');
+}
+
+function testEnglish() {
+  var d = document.getElementById('speech-result');
+  d.innerHTML = '';
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance('Hello. This is an English test. Can you hear me?');
+  u.lang = 'en-IN';
+  u.rate = 0.9;
+  u.onstart = function(){ log('speech-result','✅ English audio STARTED','ok'); };
+  u.onend   = function(){ log('speech-result','✅ English audio finished','ok'); };
+  u.onerror = function(e){ log('speech-result','❌ English error: ' + e.error,'fail'); };
   window.speechSynthesis.speak(u);
 }
 
-function t5(){
-  log('Test E: fetch blob with content-type fix...');
-  var url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  fetch(url)
-    .then(function(r){ return r.arrayBuffer(); })
-    .then(function(buf){
-      log('Test E: got '+buf.byteLength+' bytes');
-      // Force audio/mpeg content type
-      var blob = new Blob([buf], {type:'audio/mpeg'});
-      var blobUrl = URL.createObjectURL(blob);
-      var a = new Audio(blobUrl);
-      a.onplay  = function(){ log('Test E: PLAYING ✅'); };
-      a.onended = function(){ log('Test E: ENDED OK ✅'); URL.revokeObjectURL(blobUrl); };
-      a.onerror = function(){ log('Test E: ERROR code='+(a.error&&a.error.code)); };
-      a.play().catch(function(e){ log('Test E: play rejected='+e.message); });
-    })
-    .catch(function(e){ log('Test E: fetch failed='+e.message); });
-}
-window.speechSynthesis.onvoiceschanged = function(){ log('voices ready: '+window.speechSynthesis.getVoices().length); };
+// Auto-run after load
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    var voices = window.speechSynthesis.getVoices();
+    var d = document.getElementById('install-instructions');
+    if (!d) return;
+    
+    var hasAndroid = /android/i.test(navigator.userAgent);
+    var hasIOS = /iphone|ipad/i.test(navigator.userAgent);
+    
+    if (hasAndroid) {
+      d.innerHTML = '<div class="result info"><strong>📱 Android Instructions to add Tamil voice:</strong><br><br>' +
+        '1. Open phone Settings<br>' +
+        '2. Go to: General Management → Language & Input<br>' +
+        '3. Tap: Text-to-Speech (TTS)<br>' +
+        '4. Tap: Google Text-to-Speech Engine<br>' +
+        '5. Tap: Install voice data<br>' +
+        '6. Find Tamil → Download<br>' +
+        '7. Come back and test again</div>';
+    } else if (hasIOS) {
+      d.innerHTML = '<div class="result info"><strong>🍎 iPhone/iPad Instructions:</strong><br><br>' +
+        '1. Open Settings<br>' +
+        '2. Go to: Accessibility → Spoken Content<br>' +
+        '3. Tap: Voices<br>' +
+        '4. Tap: Tamil<br>' +
+        '5. Download a Tamil voice<br>' +
+        '6. Come back and test again</div>';
+    } else {
+      d.innerHTML = '<div class="result info"><strong>💻 Desktop (Chrome/Edge):</strong><br><br>' +
+        'Go to Windows Settings → Time & Language → Speech<br>' +
+        'Or on Mac: System Preferences → Accessibility → Speech<br>' +
+        'Add Tamil as a language with TTS support</div>';
+    }
+  }, 500);
+});
 </script>
 </body>
 </html>
