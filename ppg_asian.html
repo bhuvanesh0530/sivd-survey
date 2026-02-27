@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
+  <!-- ResponsiveVoice for Tamil TTS support on all devices -->
+  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1565C0 0%,#0D47A1 100%);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center}
@@ -793,6 +795,15 @@ var formSubmitted = false;
 var gpsLat = "", gpsLng = "";
 var isRec = false, recog = null, curMicBtn = null, curMicField = null;
 
+// ================================================================
+//  TTS STATE
+// ================================================================
+var ttsActive = false;
+var activeBtnId = null;
+var _ttsUtterance = null;
+// For ResponsiveVoice we track the active button separately
+var _rvActive = false;
+
 window.onload = function() { captureGPS(); setDate(); _preloadVoices(); };
 
 function captureGPS() {
@@ -1044,17 +1055,7 @@ function checkMilch(){var has=getSelected('milch',false)==='Yes';showHide('qMilc
 function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getElementById('milchCount').value||'0')>0);}
 function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
 
-// ================================================================
-//  ✅ TTS ENGINE v4 — 100% WORKING ON GITHUB PAGES
-//  Key fixes:
-//  1. REMOVED Google Translate TTS (always blocked by CORS on GitHub Pages)
-//  2. Proper voice preloading with polling loop
-//  3. Visible Tamil text banner so users can read if voice is unavailable
-//  4. No more stuck red button
-// ================================================================
-var ttsActive = false, activeBtnId = null, _ttsUtterance = null;
-
-// Preload voices as early as possible
+// Preload Web Speech API voices for English
 var _voicesLoaded = false;
 function _preloadVoices() {
   if (!('speechSynthesis' in window)) return;
@@ -1064,98 +1065,136 @@ function _preloadVoices() {
     _voicesLoaded = true;
     window.speechSynthesis.onvoiceschanged = null;
   };
-  // Also try after delays in case onvoiceschanged never fires (some Android browsers)
   setTimeout(function(){ window.speechSynthesis.getVoices(); }, 500);
   setTimeout(function(){ window.speechSynthesis.getVoices(); }, 1500);
 }
 
+// ================================================================
+//  UNIFIED TTS ENGINE
+//  - English: Uses Web Speech API (works natively everywhere)
+//  - Tamil: Uses ResponsiveVoice (works without device Tamil voice)
+// ================================================================
 function speakText(text, btnId) {
   if (!text || !text.trim()) return;
 
-  // Toggle off if same button
-  if (ttsActive && activeBtnId === btnId) { stopAllAudio(); return; }
-
-  stopAllAudio();
-  activeBtnId = btnId;
-  setBtnState(btnId, true, 'loading');
-
   var isTamil = (lang === 'ta-IN');
 
-  // Always show the text in banner for Tamil (helpful when voice unavailable)
-  if (isTamil) { showSpeakingBanner(text, true); }
+  // Toggle off if same button clicked again
+  if (ttsActive && activeBtnId === btnId) {
+    stopAllAudio();
+    return;
+  }
 
+  // Stop any currently playing audio first
+  stopAllAudio();
+
+  activeBtnId = btnId;
+  ttsActive = true;
+  setBtnState(btnId, true, 'loading');
+  showSpeakingBanner(text, isTamil);
+
+  if (isTamil) {
+    // ---- TAMIL: Use ResponsiveVoice ----
+    _speakTamil(text, btnId);
+  } else {
+    // ---- ENGLISH: Use Web Speech API ----
+    _speakEnglish(text, btnId);
+  }
+}
+
+function _speakTamil(text, btnId) {
+  // Check if ResponsiveVoice is loaded
+  if (typeof responsiveVoice === 'undefined') {
+    // Fallback: try Web Speech API with any available voice
+    _speakEnglish(text, btnId);
+    return;
+  }
+
+  // ResponsiveVoice Tamil Female voice
+  responsiveVoice.speak(text, 'Tamil Female', {
+    rate: 0.85,
+    pitch: 1.0,
+    volume: 1.0,
+    onstart: function() {
+      _rvActive = true;
+      setBtnState(btnId, true, 'playing');
+      updateBannerState(true);
+    },
+    onend: function() {
+      _rvActive = false;
+      ttsActive = false;
+      activeBtnId = null;
+      setBtnState(btnId, false);
+      hideSpeakingBanner();
+    },
+    onerror: function() {
+      _rvActive = false;
+      ttsActive = false;
+      activeBtnId = null;
+      setBtnState(btnId, false);
+      // Keep banner for reading
+      updateBannerState(false);
+      setTimeout(hideSpeakingBanner, 6000);
+    }
+  });
+
+  // Update label if it's the consent audio button
+  var lbl = document.getElementById('consentAudioLabel');
+  if (lbl && btnId === 'btn-consent-audio') {
+    lbl.textContent = 'நிறுத்த கிளிக் செய்யவும்';
+  }
+}
+
+function _speakEnglish(text, btnId) {
   if (!('speechSynthesis' in window)) {
-    // No speech support — show banner and reset button after delay
     setBtnState(btnId, false);
-    if (!isTamil) showSpeakingBanner(text, false);
-    setTimeout(function(){ hideSpeakingBanner(); }, 7000);
+    ttsActive = false;
+    activeBtnId = null;
+    setTimeout(hideSpeakingBanner, 5000);
     return;
   }
 
   function doSpeak() {
     window.speechSynthesis.cancel();
-
     var u = new SpeechSynthesisUtterance(text);
     _ttsUtterance = u;
+    u.lang = 'en-IN';
+    u.rate = 0.88;
+    u.pitch = 1.0;
+    u.volume = 1.0;
 
     var voices = window.speechSynthesis.getVoices();
-
-    if (isTamil) {
-      u.lang = 'ta-IN';
-      u.rate = 0.8;
-      u.pitch = 1.0;
-      u.volume = 1.0;
-      var tv = voices.find(function(v){ return v.lang === 'ta-IN'; })
-             || voices.find(function(v){ return v.lang.startsWith('ta'); })
-             || voices.find(function(v){ return (v.name||'').toLowerCase().indexOf('tamil') >= 0; });
-      if (tv) u.voice = tv;
-    } else {
-      u.lang = 'en-IN';
-      u.rate = 0.88;
-      u.pitch = 1.0;
-      u.volume = 1.0;
-      var ev = voices.find(function(v){ return v.lang === 'en-IN'; })
-             || voices.find(function(v){ return v.lang === 'en-GB'; })
-             || voices.find(function(v){ return v.lang.startsWith('en'); });
-      if (ev) u.voice = ev;
-    }
+    var ev = voices.find(function(v){ return v.lang === 'en-IN'; })
+           || voices.find(function(v){ return v.lang === 'en-GB'; })
+           || voices.find(function(v){ return v.lang.startsWith('en'); });
+    if (ev) u.voice = ev;
 
     u.onstart = function() {
-      ttsActive = true;
       setBtnState(btnId, true, 'playing');
-      if (isTamil) updateBannerState(true);
+      updateBannerState(true);
     };
-
     u.onend = function() {
       ttsActive = false;
       _ttsUtterance = null;
-      setBtnState(btnId, false);
       activeBtnId = null;
+      setBtnState(btnId, false);
       hideSpeakingBanner();
     };
-
     u.onerror = function() {
       ttsActive = false;
       _ttsUtterance = null;
-      setBtnState(btnId, false);
       activeBtnId = null;
-      // Keep banner visible for reading if speech failed
-      if (isTamil) {
-        updateBannerState(false);
-        setTimeout(hideSpeakingBanner, 7000);
-      }
+      setBtnState(btnId, false);
+      hideSpeakingBanner();
     };
 
     window.speechSynthesis.speak(u);
-    ttsActive = true;
-
-    // Chrome bug fix: resume if paused
+    // Chrome bug fix
     setTimeout(function(){
-      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      if (window.speechSynthesis && window.speechSynthesis.paused) window.speechSynthesis.resume();
     }, 250);
   }
 
-  // Wait for voices — poll every 200ms up to 10 times
   var voices = window.speechSynthesis.getVoices();
   if (voices.length === 0) {
     var polls = 0;
@@ -1173,34 +1212,74 @@ function speakText(text, btnId) {
 }
 
 function stopAllAudio() {
-  if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch(e){} }
+  // Stop ResponsiveVoice (Tamil)
+  if (typeof responsiveVoice !== 'undefined') {
+    try { responsiveVoice.cancel(); } catch(e){}
+  }
+  _rvActive = false;
+
+  // Stop Web Speech API (English)
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e){}
+  }
   _ttsUtterance = null;
-  ttsActive = false;
+
+  // Reset state
   if (activeBtnId) setBtnState(activeBtnId, false);
+  ttsActive = false;
   activeBtnId = null;
   hideSpeakingBanner();
+
+  // Reset consent button label
   var lbl = document.getElementById('consentAudioLabel');
   if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+  var cbtn = document.getElementById('btn-consent-audio');
+  if (cbtn) cbtn.classList.remove('playing');
 }
 
 function setBtnState(btnId, on, state) {
   if (!btnId) return;
-  var b = document.getElementById(btnId); if (!b) return;
-  b.classList.remove('loading','playing');
-  if (!on) { b.textContent = '🔊'; return; }
-  if (state === 'loading') { b.textContent = '⏳'; b.classList.add('loading'); }
-  else { b.textContent = '⏹️'; b.classList.add('playing'); }
+  var b = document.getElementById(btnId);
+  if (!b) return;
+  b.classList.remove('loading', 'playing');
+  if (!on) {
+    b.textContent = '🔊';
+    // Special case: consent button has different inner structure
+    if (btnId === 'btn-consent-audio') {
+      var lbl = document.getElementById('consentAudioLabel');
+      if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+      b.classList.remove('playing');
+    }
+    return;
+  }
+  if (state === 'loading') {
+    b.textContent = '⏳';
+    b.classList.add('loading');
+  } else {
+    b.textContent = '⏹️';
+    b.classList.add('playing');
+    if (btnId === 'btn-consent-audio') {
+      b.classList.add('playing');
+      var lbl = document.getElementById('consentAudioLabel');
+      if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'நிறுத்த கிளிக் செய்யவும்' : 'Click to Stop';
+    }
+  }
 }
 
 function toggleConsentAudio() {
-  if (ttsActive && activeBtnId === 'btn-consent-audio') { stopAllAudio(); return; }
+  if (ttsActive && activeBtnId === 'btn-consent-audio') {
+    stopAllAudio();
+    return;
+  }
   speakText(T[lang].consent.text, 'btn-consent-audio');
 }
 
 function showSpeakingBanner(text, isTamil) {
   var p = document.getElementById('tts-popup'); if (!p) return;
-  var preview = text.length > 200 ? text.substring(0,200)+'…' : text;
-  p.innerHTML = '<div style="font-size:11px;opacity:0.7;margin-bottom:4px">'+(isTamil?'🔊 பேசுகிறது...':'🔊 Speaking...')+'</div><div style="font-size:14px;line-height:1.5">'+preview+'</div>';
+  var preview = text.length > 180 ? text.substring(0, 180) + '…' : text;
+  p.innerHTML = '<div style="font-size:11px;opacity:0.7;margin-bottom:4px">'
+    + (isTamil ? '🔊 பேசுகிறது...' : '🔊 Speaking...')
+    + '</div><div style="font-size:14px;line-height:1.5">' + preview + '</div>';
   p.style.background = '#0D47A1';
   p.style.display = 'block';
   clearTimeout(p._t);
@@ -1216,8 +1295,6 @@ function hideSpeakingBanner() {
   var p = document.getElementById('tts-popup');
   if (p) { p.style.display = 'none'; clearTimeout(p._t); }
 }
-
-function showTextPopup(text) { showSpeakingBanner(text, lang === 'ta-IN'); }
 
 // ================================================================
 //  MICROPHONE
