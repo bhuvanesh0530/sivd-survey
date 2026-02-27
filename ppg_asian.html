@@ -4,7 +4,6 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
-  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -77,6 +76,7 @@
     .lang-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
     .lang-btn{padding:9px 20px;border:2px solid #1565C0;border-radius:10px;cursor:pointer;font-size:14px;background:white;color:#1565C0;font-weight:600;transition:all .2s}
     .lang-btn.active{background:#1565C0;color:white}
+    #tts-popup{position:fixed;bottom:20px;left:5%;right:5%;background:#0D47A1;color:white;padding:16px 20px;border-radius:14px;font-size:15px;text-align:center;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);line-height:1.6;display:none;font-weight:500}
     .audio-desc{font-size:11px;color:#1565C0;background:#E3F2FD;border-radius:6px;padding:5px 8px;margin-bottom:8px;display:flex;align-items:center;gap:5px}
     #submit-overlay{display:none;position:fixed;inset:0;background:rgba(13,71,161,0.92);z-index:99999;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
     #submit-overlay.visible{display:flex}
@@ -97,11 +97,13 @@
   </style>
 </head>
 <body>
+
 <div id="submit-overlay">
   <div class="overlay-spinner" id="overlay-spinner"></div>
   <div class="overlay-msg" id="overlay-msg">⏳ Submitting your survey…</div>
   <div class="overlay-submsg" id="overlay-submsg">Please wait. Do not close this page.</div>
 </div>
+
 <div class="container">
   <div class="header">
     <h1>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</h1>
@@ -109,6 +111,7 @@
     <p>Confidential | For Research Purposes Only</p>
   </div>
   <div class="form-body" id="appBody">
+
     <div id="stepLang">
       <div class="section-title">🌐 Select Language / மொழியை தேர்ந்தெடுக்கவும்</div>
       <div class="lang-bar">
@@ -117,6 +120,7 @@
       </div>
       <button class="btn-submit" style="margin-top:0;background:linear-gradient(135deg,#1565C0,#0D47A1)" onclick="showConsent()">▶ Continue / தொடர்க</button>
     </div>
+
     <div id="stepConsent" style="display:none">
       <div class="consent-box">
         <h3 id="consentTitle">📜 Informed Consent</h3>
@@ -138,31 +142,62 @@
       </div>
       <button class="btn-submit" style="margin-top:0;background:linear-gradient(135deg,#1565C0,#0D47A1)" onclick="proceedFromConsent()">▶ <span id="consentProceedLabel">Proceed</span></button>
     </div>
+
     <div id="stepSurvey" style="display:none">
       <div class="meta-box" id="metaBox">📍 GPS: <span id="gpsDisplay">Capturing...</span> | 📅 Date: <span id="dateDisplay"></span></div>
+
+      <!-- SECTION 0 -->
       <div class="section-block">
         <div class="section-title" id="sec0Title">📋 SECTION 0: METADATA</div>
         <div class="q-block" id="qVillage">
-          <div class="q-header"><span class="q-number">0.4</span><div style="flex:1"><div class="q-text" id="qVillageText">Village Name</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-village" onclick="speakText(this.dataset.speak||'','btn-audio-village')">🔊</button></div>
+          <div class="q-header">
+            <span class="q-number">0.4</span>
+            <div style="flex:1"><div class="q-text" id="qVillageText">Village Name</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-village" onclick="speakText(this.dataset.speak||'','btn-audio-village')">🔊</button>
+          </div>
           <div class="options-list" id="opts-village"></div>
         </div>
       </div>
+
+      <!-- SECTION A -->
       <div class="section-block">
         <div class="section-title" id="secATitle">👤 SECTION A: SOCIO-DEMOGRAPHIC PROFILE</div>
         <div class="q-block" id="qName">
-          <div class="q-header"><span class="q-number">A.1</span><div style="flex:1"><div class="q-text" id="qNameText">Name of Respondent</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div><button class="btn-audio" id="btn-audio-name" onclick="speakText(this.dataset.speak||'','btn-audio-name')">🔊</button></div>
-          <div class="input-row"><div class="dual-input"><div style="flex:1"><input type="text" id="nameText" placeholder="Type here..."><div class="inp-lbl">✏️ Type</div></div><div style="flex:1"><input type="text" id="nameAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div></div><button class="btn-mic" id="mic-name" onclick="startMic('name')">🎤</button></div>
+          <div class="q-header">
+            <span class="q-number">A.1</span>
+            <div style="flex:1"><div class="q-text" id="qNameText">Name of Respondent</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div>
+            <button class="btn-audio" id="btn-audio-name" onclick="speakText(this.dataset.speak||'','btn-audio-name')">🔊</button>
+          </div>
+          <div class="input-row">
+            <div class="dual-input">
+              <div style="flex:1"><input type="text" id="nameText" placeholder="Type here..."><div class="inp-lbl">✏️ Type</div></div>
+              <div style="flex:1"><input type="text" id="nameAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div>
+            </div>
+            <button class="btn-mic" id="mic-name" onclick="startMic('name')">🎤</button>
+          </div>
         </div>
         <div class="q-block" id="qCaste">
-          <div class="q-header"><span class="q-number">A.3</span><div style="flex:1"><div class="q-text" id="qCasteText">Social Category (Caste)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-caste" onclick="speakText(this.dataset.speak||'','btn-audio-caste')">🔊</button></div>
+          <div class="q-header">
+            <span class="q-number">A.3</span>
+            <div style="flex:1"><div class="q-text" id="qCasteText">Social Category (Caste)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-caste" onclick="speakText(this.dataset.speak||'','btn-audio-caste')">🔊</button>
+          </div>
           <div class="options-list" id="opts-caste"></div>
         </div>
         <div class="q-block" id="qHouseType">
-          <div class="q-header"><span class="q-number">A.4</span><div style="flex:1"><div class="q-text" id="qHouseTypeText">Type of House</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-house" onclick="speakText(this.dataset.speak||'','btn-audio-house')">🔊</button></div>
+          <div class="q-header">
+            <span class="q-number">A.4</span>
+            <div style="flex:1"><div class="q-text" id="qHouseTypeText">Type of House</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-house" onclick="speakText(this.dataset.speak||'','btn-audio-house')">🔊</button>
+          </div>
           <div class="options-list" id="opts-house"></div>
         </div>
         <div class="q-block" id="qFamilySize">
-          <div class="q-header"><span class="q-number">A.5</span><div style="flex:1"><div class="q-text" id="qFamilySizeText">Family Size</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-family" onclick="speakText(this.dataset.speak||'','btn-audio-family')">🔊</button></div>
+          <div class="q-header">
+            <span class="q-number">A.5</span>
+            <div style="flex:1"><div class="q-text" id="qFamilySizeText">Family Size</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-family" onclick="speakText(this.dataset.speak||'','btn-audio-family')">🔊</button>
+          </div>
           <div class="num-grid">
             <div class="num-item"><label id="lblMales">Adult Males (18+)</label><input type="number" id="adultMales" min="0" placeholder="0"></div>
             <div class="num-item"><label id="lblFemales">Adult Females (18+)</label><input type="number" id="adultFemales" min="0" placeholder="0"></div>
@@ -171,216 +206,720 @@
           </div>
         </div>
         <div class="q-block" id="qHasAadhar">
-          <div class="q-header"><span class="q-number">A.6</span><div style="flex:1"><div class="q-text" id="qHasAadharText">Do you have an Aadhaar card?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-hasaadhar" onclick="speakText(this.dataset.speak||'','btn-audio-hasaadhar')">🔊</button></div>
+          <div class="q-header">
+            <span class="q-number">A.6</span>
+            <div style="flex:1"><div class="q-text" id="qHasAadharText">Do you have an Aadhaar card?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-hasaadhar" onclick="speakText(this.dataset.speak||'','btn-audio-hasaadhar')">🔊</button>
+          </div>
           <div class="options-list" id="opts-hasaadhar"></div>
         </div>
         <div class="q-block hidden" id="qAadharNum">
-          <div class="q-header"><span class="q-number">A.7</span><div style="flex:1"><div class="q-text" id="qAadharNumText">Aadhaar Number</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div><button class="btn-audio" id="btn-audio-aadhar" onclick="speakText(this.dataset.speak||'','btn-audio-aadhar')">🔊</button></div>
-          <div class="input-row"><div class="dual-input"><div style="flex:1"><input type="number" id="aadharText" placeholder="12-digit Aadhaar number" min="0" maxlength="12" oninput="if(this.value.length>12)this.value=this.value.slice(0,12)"><div class="inp-lbl">✏️ Type</div></div><div style="flex:1"><input type="text" id="aadharAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div></div><button class="btn-mic" id="mic-aadhar" onclick="startMic('aadhar')">🎤</button></div>
+          <div class="q-header">
+            <span class="q-number">A.7</span>
+            <div style="flex:1"><div class="q-text" id="qAadharNumText">Aadhaar Number</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div>
+            <button class="btn-audio" id="btn-audio-aadhar" onclick="speakText(this.dataset.speak||'','btn-audio-aadhar')">🔊</button>
+          </div>
+          <div class="input-row">
+            <div class="dual-input">
+              <div style="flex:1"><input type="number" id="aadharText" placeholder="12-digit Aadhaar number" min="0" maxlength="12" oninput="if(this.value.length>12)this.value=this.value.slice(0,12)"><div class="inp-lbl">✏️ Type</div></div>
+              <div style="flex:1"><input type="text" id="aadharAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div>
+            </div>
+            <button class="btn-mic" id="mic-aadhar" onclick="startMic('aadhar')">🎤</button>
+          </div>
         </div>
       </div>
+
+      <!-- SECTION B -->
       <div class="section-block">
         <div class="section-title" id="secBTitle">💼 SECTION B: LIVELIHOODS & ECONOMIC STATUS</div>
-        <div class="q-block" id="qPrimaryIncome"><div class="q-header"><span class="q-number">B.1</span><div style="flex:1"><div class="q-text" id="qPrimaryIncomeText">Primary Source of Income</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-income" onclick="speakText(this.dataset.speak||'','btn-audio-income')">🔊</button></div><div class="options-list" id="opts-income"></div></div>
-        <div class="q-block" id="qMonthlyIncome"><div class="q-header"><span class="q-number">B.2</span><div style="flex:1"><div class="q-text" id="qMonthlyIncomeText">Average Monthly Household Income (Estimate) – INR</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div><button class="btn-audio" id="btn-audio-monthlyincome" onclick="speakText(this.dataset.speak||'','btn-audio-monthlyincome')">🔊</button></div><div class="input-row"><div class="dual-input"><div style="flex:1"><input type="number" id="incomeText" placeholder="e.g. 5000" min="0"><div class="inp-lbl">✏️ Type</div></div><div style="flex:1"><input type="text" id="incomeAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div></div><button class="btn-mic" id="mic-income" onclick="startMic('income')">🎤</button></div></div>
-        <div class="q-block" id="qRationCard"><div class="q-header"><span class="q-number">B.3</span><div style="flex:1"><div class="q-text" id="qRationCardText">Ration Card Type</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-ration" onclick="speakText(this.dataset.speak||'','btn-audio-ration')">🔊</button></div><div class="options-list" id="opts-ration"></div></div>
-        <div class="q-block" id="qHasLoans"><div class="q-header"><span class="q-number">B.4</span><div style="flex:1"><div class="q-text" id="qHasLoansText">Do you currently have any outstanding loans?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-loans" onclick="speakText(this.dataset.speak||'','btn-audio-loans')">🔊</button></div><div class="options-list" id="opts-loans"></div></div>
-        <div class="q-block hidden" id="qLoanSource"><div class="q-header"><span class="q-number">B.4a</span><div style="flex:1"><div class="q-text" id="qLoanSourceText">If Yes: Who did you borrow from?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-loansource" onclick="speakText(this.dataset.speak||'','btn-audio-loansource')">🔊</button></div><div class="options-list" id="opts-loansource"></div></div>
-        <div class="q-block" id="qMigration"><div class="q-header"><span class="q-number">B.5</span><div style="flex:1"><div class="q-text" id="qMigrationText">Does any family member live outside the village for work?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-migration" onclick="speakText(this.dataset.speak||'','btn-audio-migration')">🔊</button></div><div class="options-list" id="opts-migration"></div></div>
-        <div class="q-block hidden" id="qMigrationFreq"><div class="q-header"><span class="q-number">B.5a</span><div style="flex:1"><div class="q-text" id="qMigrationFreqText">If Yes: Frequency of return?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-migfreq" onclick="speakText(this.dataset.speak||'','btn-audio-migfreq')">🔊</button></div><div class="options-list" id="opts-migfreq"></div></div>
-        <div class="q-block" id="qSHGMember"><div class="q-header"><span class="q-number">B.6</span><div style="flex:1"><div class="q-text" id="qSHGMemberText">Are you a member of a Self-Help Group (SHG)?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-shgmember" onclick="speakText(this.dataset.speak||'','btn-audio-shgmember')">🔊</button></div><div class="options-list" id="opts-shgmember"></div></div>
+        <div class="q-block" id="qPrimaryIncome">
+          <div class="q-header">
+            <span class="q-number">B.1</span>
+            <div style="flex:1"><div class="q-text" id="qPrimaryIncomeText">Primary Source of Income</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-income" onclick="speakText(this.dataset.speak||'','btn-audio-income')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-income"></div>
+        </div>
+        <div class="q-block" id="qMonthlyIncome">
+          <div class="q-header">
+            <span class="q-number">B.2</span>
+            <div style="flex:1"><div class="q-text" id="qMonthlyIncomeText">Average Monthly Household Income (Estimate) – INR</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div>
+            <button class="btn-audio" id="btn-audio-monthlyincome" onclick="speakText(this.dataset.speak||'','btn-audio-monthlyincome')">🔊</button>
+          </div>
+          <div class="input-row">
+            <div class="dual-input">
+              <div style="flex:1"><input type="number" id="incomeText" placeholder="e.g. 5000" min="0"><div class="inp-lbl">✏️ Type</div></div>
+              <div style="flex:1"><input type="text" id="incomeAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div>
+            </div>
+            <button class="btn-mic" id="mic-income" onclick="startMic('income')">🎤</button>
+          </div>
+        </div>
+        <div class="q-block" id="qRationCard">
+          <div class="q-header">
+            <span class="q-number">B.3</span>
+            <div style="flex:1"><div class="q-text" id="qRationCardText">Ration Card Type</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-ration" onclick="speakText(this.dataset.speak||'','btn-audio-ration')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-ration"></div>
+        </div>
+        <div class="q-block" id="qHasLoans">
+          <div class="q-header">
+            <span class="q-number">B.4</span>
+            <div style="flex:1"><div class="q-text" id="qHasLoansText">Do you currently have any outstanding loans?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-loans" onclick="speakText(this.dataset.speak||'','btn-audio-loans')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-loans"></div>
+        </div>
+        <div class="q-block hidden" id="qLoanSource">
+          <div class="q-header">
+            <span class="q-number">B.4a</span>
+            <div style="flex:1"><div class="q-text" id="qLoanSourceText">If Yes: Who did you borrow from? (Select all that apply)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-loansource" onclick="speakText(this.dataset.speak||'','btn-audio-loansource')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-loansource"></div>
+        </div>
+        <div class="q-block" id="qMigration">
+          <div class="q-header">
+            <span class="q-number">B.5</span>
+            <div style="flex:1"><div class="q-text" id="qMigrationText">Does any family member live outside the village for work?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-migration" onclick="speakText(this.dataset.speak||'','btn-audio-migration')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-migration"></div>
+        </div>
+        <div class="q-block hidden" id="qMigrationFreq">
+          <div class="q-header">
+            <span class="q-number">B.5a</span>
+            <div style="flex:1"><div class="q-text" id="qMigrationFreqText">If Yes: Frequency of return?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-migfreq" onclick="speakText(this.dataset.speak||'','btn-audio-migfreq')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-migfreq"></div>
+        </div>
+        <div class="q-block" id="qSHGMember">
+          <div class="q-header">
+            <span class="q-number">B.6</span>
+            <div style="flex:1"><div class="q-text" id="qSHGMemberText">Are you a member of a Self-Help Group (SHG)?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-shgmember" onclick="speakText(this.dataset.speak||'','btn-audio-shgmember')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-shgmember"></div>
+        </div>
       </div>
+
+      <!-- SECTION C -->
       <div class="section-block hidden" id="sectionC">
         <div class="section-title" id="secCTitle">👩‍👩‍👧 SECTION C: WOMEN EMPOWERMENT (SHG STATUS)</div>
         <div class="section-subtitle" id="secCSubtitle">Ask specifically to the female head of household | Skip if not an SHG Member</div>
-        <div class="q-block" id="qSHGName"><div class="q-header"><span class="q-number">C.2</span><div style="flex:1"><div class="q-text" id="qSHGNameText">Name of SHG</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div><button class="btn-audio" id="btn-audio-shgname" onclick="speakText(this.dataset.speak||'','btn-audio-shgname')">🔊</button></div><div class="input-row"><div class="dual-input"><div style="flex:1"><input type="text" id="shgNameText" placeholder="Type SHG name..."><div class="inp-lbl">✏️ Type</div></div><div style="flex:1"><input type="text" id="shgNameAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div></div><button class="btn-mic" id="mic-shgName" onclick="startMic('shgName')">🎤</button></div></div>
-        <div class="q-block" id="qSHGMeetFreq"><div class="q-header"><span class="q-number">C.3</span><div style="flex:1"><div class="q-text" id="qSHGMeetFreqText">Frequency of Meetings</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-shgmeet" onclick="speakText(this.dataset.speak||'','btn-audio-shgmeet')">🔊</button></div><div class="options-list" id="opts-shgmeet"></div></div>
-        <div class="q-block" id="qSHGSaves"><div class="q-header"><span class="q-number">C.4a</span><div style="flex:1"><div class="q-text" id="qSHGSavesText">Do you save money in the group every month?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-shgsaves" onclick="speakText(this.dataset.speak||'','btn-audio-shgsaves')">🔊</button></div><div class="options-list" id="opts-shgsaves"></div></div>
-        <div class="q-block" id="qSHGLoan"><div class="q-header"><span class="q-number">C.4b</span><div style="flex:1"><div class="q-text" id="qSHGLoanText">Have you taken a loan from the SHG in the last 1 year?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-shgloan" onclick="speakText(this.dataset.speak||'','btn-audio-shgloan')">🔊</button></div><div class="options-list" id="opts-shgloan"></div></div>
-        <div class="q-block hidden" id="qSHGLoanPurpose"><div class="q-header"><span class="q-number">C.4c</span><div style="flex:1"><div class="q-text" id="qSHGLoanPurposeText">If Yes: Purpose of Loan?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-shgloanpurpose" onclick="speakText(this.dataset.speak||'','btn-audio-shgloanpurpose')">🔊</button></div><div class="options-list" id="opts-shgloanpurpose"></div></div>
+        <div class="q-block" id="qSHGName">
+          <div class="q-header">
+            <span class="q-number">C.2</span>
+            <div style="flex:1"><div class="q-text" id="qSHGNameText">Name of SHG</div><div class="q-audio-hint">🔊 Click the speaker icon to hear. 🎤 Click the microphone icon to record your voice.</div></div>
+            <button class="btn-audio" id="btn-audio-shgname" onclick="speakText(this.dataset.speak||'','btn-audio-shgname')">🔊</button>
+          </div>
+          <div class="input-row">
+            <div class="dual-input">
+              <div style="flex:1"><input type="text" id="shgNameText" placeholder="Type SHG name..."><div class="inp-lbl">✏️ Type</div></div>
+              <div style="flex:1"><input type="text" id="shgNameAudio" placeholder="Voice input..." readonly><div class="inp-lbl">🎤 Voice</div></div>
+            </div>
+            <button class="btn-mic" id="mic-shgName" onclick="startMic('shgName')">🎤</button>
+          </div>
+        </div>
+        <div class="q-block" id="qSHGMeetFreq">
+          <div class="q-header">
+            <span class="q-number">C.3</span>
+            <div style="flex:1"><div class="q-text" id="qSHGMeetFreqText">Frequency of Meetings</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-shgmeet" onclick="speakText(this.dataset.speak||'','btn-audio-shgmeet')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-shgmeet"></div>
+        </div>
+        <div class="q-block" id="qSHGSaves">
+          <div class="q-header">
+            <span class="q-number">C.4a</span>
+            <div style="flex:1"><div class="q-text" id="qSHGSavesText">Do you save money in the group every month?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-shgsaves" onclick="speakText(this.dataset.speak||'','btn-audio-shgsaves')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-shgsaves"></div>
+        </div>
+        <div class="q-block" id="qSHGLoan">
+          <div class="q-header">
+            <span class="q-number">C.4b</span>
+            <div style="flex:1"><div class="q-text" id="qSHGLoanText">Have you taken a loan from the SHG in the last 1 year?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-shgloan" onclick="speakText(this.dataset.speak||'','btn-audio-shgloan')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-shgloan"></div>
+        </div>
+        <div class="q-block hidden" id="qSHGLoanPurpose">
+          <div class="q-header">
+            <span class="q-number">C.4c</span>
+            <div style="flex:1"><div class="q-text" id="qSHGLoanPurposeText">If Yes: Purpose of Loan?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-shgloanpurpose" onclick="speakText(this.dataset.speak||'','btn-audio-shgloanpurpose')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-shgloanpurpose"></div>
+        </div>
       </div>
+
+      <!-- SECTION D -->
       <div class="section-block">
         <div class="section-title" id="secDTitle">📚 SECTION D: EDUCATION & DIGITAL ACCESS</div>
         <div class="section-subtitle" id="secDSubtitle">Ask for every child aged 5-18 years in the household</div>
         <div class="q-block" id="qSchoolMatrix">
-          <div class="q-header"><span class="q-number">D.1</span><div style="flex:1"><div class="q-text" id="qSchoolMatrixText">Schooling Status (Matrix – Male and Female)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-school" onclick="speakText(this.dataset.speak||'','btn-audio-school')">🔊</button></div>
-          <div class="matrix-wrap"><table class="matrix-table"><thead><tr><th class="row-header"><span id="matD1Row">Schooling Status</span></th><th><span id="matD1Male">Male</span> <button class="opt-audio" id="btn-mat-male" onclick="speakText(this.dataset.speak||'','btn-mat-male')">🔊</button></th><th><span id="matD1Female">Female</span> <button class="opt-audio" id="btn-mat-female" onclick="speakText(this.dataset.speak||'','btn-mat-female')">🔊</button></th></tr></thead><tbody><tr><td class="row-label"><span id="lblEnrolled">Currently Enrolled</span> <button class="opt-audio" id="btn-mat-enrolled" onclick="speakText(this.dataset.speak||'','btn-mat-enrolled')">🔊</button></td><td><input type="number" id="enrolledMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td><td><input type="number" id="enrolledFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td></tr><tr><td class="row-label"><span id="lblDropout">Drop-out</span> <button class="opt-audio" id="btn-mat-dropout" onclick="speakText(this.dataset.speak||'','btn-mat-dropout')">🔊</button></td><td><input type="number" id="dropoutMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td><td><input type="number" id="dropoutFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td></tr><tr><td class="row-label"><span id="lblNeverEnrolled">Never Enrolled</span> <button class="opt-audio" id="btn-mat-never" onclick="speakText(this.dataset.speak||'','btn-mat-never')">🔊</button></td><td><input type="number" id="neverMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td><td><input type="number" id="neverFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td></tr></tbody></table></div>
+          <div class="q-header">
+            <span class="q-number">D.1</span>
+            <div style="flex:1"><div class="q-text" id="qSchoolMatrixText">Schooling Status (Matrix – Male and Female)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-school" onclick="speakText(this.dataset.speak||'','btn-audio-school')">🔊</button>
+          </div>
+          <div class="matrix-wrap">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th class="row-header"><span id="matD1Row">Schooling Status</span></th>
+                  <th><span id="matD1Male">Male</span> <button class="opt-audio" id="btn-mat-male" onclick="speakText(this.dataset.speak||'','btn-mat-male')">🔊</button></th>
+                  <th><span id="matD1Female">Female</span> <button class="opt-audio" id="btn-mat-female" onclick="speakText(this.dataset.speak||'','btn-mat-female')">🔊</button></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="row-label"><span id="lblEnrolled">Currently Enrolled</span> <button class="opt-audio" id="btn-mat-enrolled" onclick="speakText(this.dataset.speak||'','btn-mat-enrolled')">🔊</button></td>
+                  <td><input type="number" id="enrolledMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td>
+                  <td><input type="number" id="enrolledFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td>
+                </tr>
+                <tr>
+                  <td class="row-label"><span id="lblDropout">Drop-out (Stopped Going)</span> <button class="opt-audio" id="btn-mat-dropout" onclick="speakText(this.dataset.speak||'','btn-mat-dropout')">🔊</button></td>
+                  <td><input type="number" id="dropoutMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td>
+                  <td><input type="number" id="dropoutFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center" onchange="checkSchoolConditions()"></td>
+                </tr>
+                <tr>
+                  <td class="row-label"><span id="lblNeverEnrolled">Never Enrolled</span> <button class="opt-audio" id="btn-mat-never" onclick="speakText(this.dataset.speak||'','btn-mat-never')">🔊</button></td>
+                  <td><input type="number" id="neverMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td>
+                  <td><input type="number" id="neverFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="q-block hidden" id="qSchoolType"><div class="q-header"><span class="q-number">D.2</span><div style="flex:1"><div class="q-text" id="qSchoolTypeText">(If Enrolled) Type of School</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-schooltype" onclick="speakText(this.dataset.speak||'','btn-audio-schooltype')">🔊</button></div><div class="options-list" id="opts-schooltype"></div></div>
-        <div class="q-block hidden" id="qDropoutReason"><div class="q-header"><span class="q-number">D.3</span><div style="flex:1"><div class="q-text" id="qDropoutReasonText">(If Dropout) Reason for Leaving</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-dropoutreason" onclick="speakText(this.dataset.speak||'','btn-audio-dropoutreason')">🔊</button></div><div class="options-list" id="opts-dropoutreason"></div></div>
-        <div class="q-block" id="qTravelSchool"><div class="q-header"><span class="q-number">D.4</span><div style="flex:1"><div class="q-text" id="qTravelSchoolText">Travel to School</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-travelschool" onclick="speakText(this.dataset.speak||'','btn-audio-travelschool')">🔊</button></div><div class="section-subtitle" id="lblTravelMode" style="margin-bottom:8px">Mode of Travel:</div><div class="options-list" id="opts-travelmode"></div><div style="margin-top:10px"><label id="lblTravelDistance" style="font-size:12px;color:#555;display:block;margin-bottom:4px">Distance to School (km):</label><input type="number" id="schoolDistance" min="0" step="0.1" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="e.g. 2.5"></div></div>
-        <div class="q-block" id="qTuition"><div class="q-header"><span class="q-number">D.5a</span><div style="flex:1"><div class="q-text" id="qTuitionText">Does the child go to private tuition?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-tuition" onclick="speakText(this.dataset.speak||'','btn-audio-tuition')">🔊</button></div><div class="options-list" id="opts-tuition"></div></div>
-        <div class="q-block" id="qLearning"><div class="q-header"><span class="q-number">D.5b</span><div style="flex:1"><div class="q-text" id="qLearningText">Does the child struggle with Reading/Math?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-learning" onclick="speakText(this.dataset.speak||'','btn-audio-learning')">🔊</button></div><div class="options-list" id="opts-learning"></div></div>
-        <div class="q-block" id="qSmartphone"><div class="q-header"><span class="q-number">D.6a</span><div style="flex:1"><div class="q-text" id="qSmartphoneText">Does the child have access to a Smartphone or Computer at home?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-smartphone" onclick="speakText(this.dataset.speak||'','btn-audio-smartphone')">🔊</button></div><div class="options-list" id="opts-smartphone"></div></div>
-        <div class="q-block" id="qInternet"><div class="q-header"><span class="q-number">D.6b</span><div style="flex:1"><div class="q-text" id="qInternetText">Can the child use the internet independently?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-internet" onclick="speakText(this.dataset.speak||'','btn-audio-internet')">🔊</button></div><div class="options-list" id="opts-internet"></div></div>
+        <div class="q-block hidden" id="qSchoolType">
+          <div class="q-header">
+            <span class="q-number">D.2</span>
+            <div style="flex:1"><div class="q-text" id="qSchoolTypeText">(If Enrolled) Type of School</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-schooltype" onclick="speakText(this.dataset.speak||'','btn-audio-schooltype')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-schooltype"></div>
+        </div>
+        <div class="q-block hidden" id="qDropoutReason">
+          <div class="q-header">
+            <span class="q-number">D.3</span>
+            <div style="flex:1"><div class="q-text" id="qDropoutReasonText">(If Dropout) Reason for Leaving</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-dropoutreason" onclick="speakText(this.dataset.speak||'','btn-audio-dropoutreason')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-dropoutreason"></div>
+        </div>
+        <div class="q-block" id="qTravelSchool">
+          <div class="q-header">
+            <span class="q-number">D.4</span>
+            <div style="flex:1"><div class="q-text" id="qTravelSchoolText">Travel to School</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-travelschool" onclick="speakText(this.dataset.speak||'','btn-audio-travelschool')">🔊</button>
+          </div>
+          <div class="section-subtitle" id="lblTravelMode" style="margin-bottom:8px">Mode of Travel:</div>
+          <div class="options-list" id="opts-travelmode"></div>
+          <div style="margin-top:10px">
+            <label id="lblTravelDistance" style="font-size:12px;color:#555;display:block;margin-bottom:4px">Distance to School (km):</label>
+            <input type="number" id="schoolDistance" min="0" step="0.1" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="e.g. 2.5">
+          </div>
+        </div>
+        <div class="q-block" id="qTuition">
+          <div class="q-header">
+            <span class="q-number">D.5a</span>
+            <div style="flex:1"><div class="q-text" id="qTuitionText">Does the child go to private tuition?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-tuition" onclick="speakText(this.dataset.speak||'','btn-audio-tuition')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-tuition"></div>
+        </div>
+        <div class="q-block" id="qLearning">
+          <div class="q-header">
+            <span class="q-number">D.5b</span>
+            <div style="flex:1"><div class="q-text" id="qLearningText">Does the child struggle with Reading/Math?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-learning" onclick="speakText(this.dataset.speak||'','btn-audio-learning')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-learning"></div>
+        </div>
+        <div class="q-block" id="qSmartphone">
+          <div class="q-header">
+            <span class="q-number">D.6a</span>
+            <div style="flex:1"><div class="q-text" id="qSmartphoneText">Does the child have access to a Smartphone or Computer at home?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-smartphone" onclick="speakText(this.dataset.speak||'','btn-audio-smartphone')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-smartphone"></div>
+        </div>
+        <div class="q-block" id="qInternet">
+          <div class="q-header">
+            <span class="q-number">D.6b</span>
+            <div style="flex:1"><div class="q-text" id="qInternetText">Can the child use the internet independently?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-internet" onclick="speakText(this.dataset.speak||'','btn-audio-internet')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-internet"></div>
+        </div>
       </div>
+
+      <!-- SECTION E -->
       <div class="section-block">
         <div class="section-title" id="secETitle">🏥 SECTION E: HEALTH, NUTRITION & WASH</div>
-        <div class="q-block" id="qWaterSource"><div class="q-header"><span class="q-number">E.1a</span><div style="flex:1"><div class="q-text" id="qWaterSourceText">Primary Source of Drinking Water</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-watersource" onclick="speakText(this.dataset.speak||'','btn-audio-watersource')">🔊</button></div><div class="options-list" id="opts-watersource"></div></div>
-        <div class="q-block" id="qWaterTreatment"><div class="q-header"><span class="q-number">E.1b</span><div style="flex:1"><div class="q-text" id="qWaterTreatmentText">Do you treat water before drinking?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-watertreat" onclick="speakText(this.dataset.speak||'','btn-audio-watertreat')">🔊</button></div><div class="options-list" id="opts-watertreat"></div></div>
-        <div class="q-block" id="qHasToilet"><div class="q-header"><span class="q-number">E.2a</span><div style="flex:1"><div class="q-text" id="qHasToiletText">Do you have a toilet in the house?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-toilet" onclick="speakText(this.dataset.speak||'','btn-audio-toilet')">🔊</button></div><div class="options-list" id="opts-toilet"></div></div>
-        <div class="q-block hidden" id="qToiletUsable"><div class="q-header"><span class="q-number">E.2b</span><div style="flex:1"><div class="q-text" id="qToiletUsableText">If Yes: Is it currently usable?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-toiletusable" onclick="speakText(this.dataset.speak||'','btn-audio-toiletusable')">🔊</button></div><div class="options-list" id="opts-toiletusable"></div></div>
-        <div class="q-block hidden" id="qToiletUsers"><div class="q-header"><span class="q-number">E.2c</span><div style="flex:1"><div class="q-text" id="qToiletUsersText">If Yes: Who uses it?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-toiletusers" onclick="speakText(this.dataset.speak||'','btn-audio-toiletusers')">🔊</button></div><div class="options-list" id="opts-toiletusers"></div></div>
-        <div class="q-block" id="qMenstrualMaterial"><div class="q-header"><span class="q-number">E.3a</span><div style="flex:1"><div class="q-text" id="qMenstrualMaterialText">Menstrual Hygiene: What material do you use?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-menstrual" onclick="speakText(this.dataset.speak||'','btn-audio-menstrual')">🔊</button></div><div class="options-list" id="opts-menstrual"></div></div>
-        <div class="q-block" id="qMenstrualDisposal"><div class="q-header"><span class="q-number">E.3b</span><div style="flex:1"><div class="q-text" id="qMenstrualDisposalText">How do you dispose of used materials?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-menstrualdisposal" onclick="speakText(this.dataset.speak||'','btn-audio-menstrualdisposal')">🔊</button></div><div class="options-list" id="opts-menstrualdisposal"></div></div>
-        <div class="q-block" id="qGreenVeg"><div class="q-header"><span class="q-number">E.4a</span><div style="flex:1"><div class="q-text" id="qGreenVegText">How often does the family eat Green Leafy Vegetables?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-greenveg" onclick="speakText(this.dataset.speak||'','btn-audio-greenveg')">🔊</button></div><div class="options-list" id="opts-greenveg"></div></div>
-        <div class="q-block" id="qMilkFreq"><div class="q-header"><span class="q-number">E.4b</span><div style="flex:1"><div class="q-text" id="qMilkFreqText">How often does the family consume Milk/Curd?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-milkfreq" onclick="speakText(this.dataset.speak||'','btn-audio-milkfreq')">🔊</button></div><div class="options-list" id="opts-milkfreq"></div></div>
+        <div class="q-block" id="qWaterSource">
+          <div class="q-header">
+            <span class="q-number">E.1a</span>
+            <div style="flex:1"><div class="q-text" id="qWaterSourceText">Primary Source of Drinking Water</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-watersource" onclick="speakText(this.dataset.speak||'','btn-audio-watersource')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-watersource"></div>
+        </div>
+        <div class="q-block" id="qWaterTreatment">
+          <div class="q-header">
+            <span class="q-number">E.1b</span>
+            <div style="flex:1"><div class="q-text" id="qWaterTreatmentText">Do you treat water before drinking?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-watertreat" onclick="speakText(this.dataset.speak||'','btn-audio-watertreat')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-watertreat"></div>
+        </div>
+        <div class="q-block" id="qHasToilet">
+          <div class="q-header">
+            <span class="q-number">E.2a</span>
+            <div style="flex:1"><div class="q-text" id="qHasToiletText">Do you have a toilet in the house?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-toilet" onclick="speakText(this.dataset.speak||'','btn-audio-toilet')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-toilet"></div>
+        </div>
+        <div class="q-block hidden" id="qToiletUsable">
+          <div class="q-header">
+            <span class="q-number">E.2b</span>
+            <div style="flex:1"><div class="q-text" id="qToiletUsableText">If Yes: Is it currently usable (Clean/Water available)?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-toiletusable" onclick="speakText(this.dataset.speak||'','btn-audio-toiletusable')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-toiletusable"></div>
+        </div>
+        <div class="q-block hidden" id="qToiletUsers">
+          <div class="q-header">
+            <span class="q-number">E.2c</span>
+            <div style="flex:1"><div class="q-text" id="qToiletUsersText">If Yes: Who uses it?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-toiletusers" onclick="speakText(this.dataset.speak||'','btn-audio-toiletusers')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-toiletusers"></div>
+        </div>
+        <div class="q-block" id="qMenstrualMaterial">
+          <div class="q-header">
+            <span class="q-number">E.3a</span>
+            <div style="flex:1"><div class="q-text" id="qMenstrualMaterialText">Menstrual Hygiene (Women 15-49): What material do you use?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-menstrual" onclick="speakText(this.dataset.speak||'','btn-audio-menstrual')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-menstrual"></div>
+        </div>
+        <div class="q-block" id="qMenstrualDisposal">
+          <div class="q-header">
+            <span class="q-number">E.3b</span>
+            <div style="flex:1"><div class="q-text" id="qMenstrualDisposalText">How do you dispose of used materials?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-menstrualdisposal" onclick="speakText(this.dataset.speak||'','btn-audio-menstrualdisposal')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-menstrualdisposal"></div>
+        </div>
+        <div class="q-block" id="qGreenVeg">
+          <div class="q-header">
+            <span class="q-number">E.4a</span>
+            <div style="flex:1"><div class="q-text" id="qGreenVegText">How often does the family eat Green Leafy Vegetables?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-greenveg" onclick="speakText(this.dataset.speak||'','btn-audio-greenveg')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-greenveg"></div>
+        </div>
+        <div class="q-block" id="qMilkFreq">
+          <div class="q-header">
+            <span class="q-number">E.4b</span>
+            <div style="flex:1"><div class="q-text" id="qMilkFreqText">How often does the family consume Milk/Curd?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-milkfreq" onclick="speakText(this.dataset.speak||'','btn-audio-milkfreq')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-milkfreq"></div>
+        </div>
         <div class="q-block" id="qNCDMatrix">
-          <div class="q-header"><span class="q-number">E.5</span><div style="flex:1"><div class="q-text" id="qNCDMatrixText">Has a doctor told anyone in the family they have:</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-ncd" onclick="speakText(this.dataset.speak||'','btn-audio-ncd')">🔊</button></div>
-          <div class="matrix-wrap"><table class="matrix-table"><thead><tr><th class="row-header" id="ncdCondHeader">Health Condition</th><th><span id="ncdMaleHeader">Male</span> <button class="opt-audio" id="btn-ncd-male" onclick="speakText(T[lang].d.male,'btn-ncd-male')">🔊</button></th><th><span id="ncdFemaleHeader">Female</span> <button class="opt-audio" id="btn-ncd-female" onclick="speakText(T[lang].d.female,'btn-ncd-female')">🔊</button></th></tr></thead><tbody><tr><td class="row-label"><span id="lblBP">High Blood Pressure (BP)</span> <button class="opt-audio" id="btn-ncd-bp" onclick="speakText(T[lang].e.bp,'btn-ncd-bp')">🔊</button></td><td><input type="number" id="bpMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td><td><input type="number" id="bpFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td></tr><tr><td class="row-label"><span id="lblDiabetes">Diabetes (Sugar)</span> <button class="opt-audio" id="btn-ncd-diabetes" onclick="speakText(T[lang].e.diabetes,'btn-ncd-diabetes')">🔊</button></td><td><input type="number" id="diabetesMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td><td><input type="number" id="diabetesFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td></tr></tbody></table></div>
+          <div class="q-header">
+            <span class="q-number">E.5</span>
+            <div style="flex:1"><div class="q-text" id="qNCDMatrixText">Has a doctor told anyone in the family they have: (Number of people for Male and Female separately)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-ncd" onclick="speakText(this.dataset.speak||'','btn-audio-ncd')">🔊</button>
+          </div>
+          <div class="matrix-wrap">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th class="row-header" id="ncdCondHeader">Health Condition</th>
+                  <th><span id="ncdMaleHeader">Male</span> <button class="opt-audio" id="btn-ncd-male" onclick="speakText(T[lang].d.male,'btn-ncd-male')">🔊</button></th>
+                  <th><span id="ncdFemaleHeader">Female</span> <button class="opt-audio" id="btn-ncd-female" onclick="speakText(T[lang].d.female,'btn-ncd-female')">🔊</button></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="row-label"><span id="lblBP">High Blood Pressure (BP)</span> <button class="opt-audio" id="btn-ncd-bp" onclick="speakText(T[lang].e.bp,'btn-ncd-bp')">🔊</button></td>
+                  <td><input type="number" id="bpMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td>
+                  <td><input type="number" id="bpFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td>
+                </tr>
+                <tr>
+                  <td class="row-label"><span id="lblDiabetes">Diabetes (Sugar)</span> <button class="opt-audio" id="btn-ncd-diabetes" onclick="speakText(T[lang].e.diabetes,'btn-ncd-diabetes')">🔊</button></td>
+                  <td><input type="number" id="diabetesMale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td>
+                  <td><input type="number" id="diabetesFemale" min="0" placeholder="0" style="width:60px;padding:5px;border:1.5px solid #ccc;border-radius:6px;text-align:center"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+
+      <!-- SECTION F -->
       <div class="section-block">
         <div class="section-title" id="secFTitle">🗑️ SECTION F: WASTE MANAGEMENT (SWM)</div>
-        <div class="q-block" id="qWasteSegregation"><div class="q-header"><span class="q-number">F.1</span><div style="flex:1"><div class="q-text" id="qWasteSegText">Do you separate wet waste and dry waste at home?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-wasteseg" onclick="speakText(this.dataset.speak||'','btn-audio-wasteseg')">🔊</button></div><div class="options-list" id="opts-wasteseg"></div></div>
-        <div class="q-block" id="qWetWaste"><div class="q-header"><span class="q-number">F.2</span><div style="flex:1"><div class="q-text" id="qWetWasteText">Disposal Method – Wet Waste</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-wetwaste" onclick="speakText(this.dataset.speak||'','btn-audio-wetwaste')">🔊</button></div><div class="options-list" id="opts-wetwaste"></div></div>
-        <div class="q-block" id="qDryWaste"><div class="q-header"><span class="q-number">F.3</span><div style="flex:1"><div class="q-text" id="qDryWasteText">Disposal Method – Dry Waste</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-drywaste" onclick="speakText(this.dataset.speak||'','btn-audio-drywaste')">🔊</button></div><div class="options-list" id="opts-drywaste"></div></div>
-        <div class="q-block" id="qWasteCollector"><div class="q-header"><span class="q-number">F.4</span><div style="flex:1"><div class="q-text" id="qWasteCollectorText">Does the waste collector come to your door?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-wastecollect" onclick="speakText(this.dataset.speak||'','btn-audio-wastecollect')">🔊</button></div><div class="options-list" id="opts-wastecollect"></div></div>
+        <div class="q-block" id="qWasteSegregation">
+          <div class="q-header">
+            <span class="q-number">F.1</span>
+            <div style="flex:1"><div class="q-text" id="qWasteSegText">Do you separate wet waste (food) and dry waste (plastic) at home?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-wasteseg" onclick="speakText(this.dataset.speak||'','btn-audio-wasteseg')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-wasteseg"></div>
+        </div>
+        <div class="q-block" id="qWetWaste">
+          <div class="q-header">
+            <span class="q-number">F.2</span>
+            <div style="flex:1"><div class="q-text" id="qWetWasteText">Disposal Method – Wet Waste</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-wetwaste" onclick="speakText(this.dataset.speak||'','btn-audio-wetwaste')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-wetwaste"></div>
+        </div>
+        <div class="q-block" id="qDryWaste">
+          <div class="q-header">
+            <span class="q-number">F.3</span>
+            <div style="flex:1"><div class="q-text" id="qDryWasteText">Disposal Method – Dry Waste</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-drywaste" onclick="speakText(this.dataset.speak||'','btn-audio-drywaste')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-drywaste"></div>
+        </div>
+        <div class="q-block" id="qWasteCollector">
+          <div class="q-header">
+            <span class="q-number">F.4</span>
+            <div style="flex:1"><div class="q-text" id="qWasteCollectorText">Does the waste collector (Thooimaikavalar) come to your door?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-wastecollect" onclick="speakText(this.dataset.speak||'','btn-audio-wastecollect')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-wastecollect"></div>
+        </div>
       </div>
+
+      <!-- SECTION G -->
       <div class="section-block">
         <div class="section-title" id="secGTitle">🌾 SECTION G: AGRICULTURE & LIVESTOCK (NRM)</div>
-        <div class="q-block" id="qOwnsLand"><div class="q-header"><span class="q-number">G.1</span><div style="flex:1"><div class="q-text" id="qOwnsLandText">Do you own agricultural land?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-land" onclick="speakText(this.dataset.speak||'','btn-audio-land')">🔊</button></div><div class="options-list" id="opts-land"></div></div>
-        <div class="q-block hidden" id="qLandAcres"><div class="q-header"><span class="q-number">G.1a</span><div style="flex:1"><div class="q-text" id="qLandAcresText">If Yes: How many Acres?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-acres" onclick="speakText(this.dataset.speak||'','btn-audio-acres')">🔊</button></div><input type="number" id="landAcres" min="0" step="0.1" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="e.g. 2.5"></div>
-        <div class="q-block" id="qMilchAnimals"><div class="q-header"><span class="q-number">G.2a</span><div style="flex:1"><div class="q-text" id="qMilchAnimalsText">Do you own Milch Animals (Cows/Buffaloes)?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-milch" onclick="speakText(this.dataset.speak||'','btn-audio-milch')">🔊</button></div><div class="options-list" id="opts-milch"></div></div>
-        <div class="q-block hidden" id="qMilchCount"><div class="q-header"><span class="q-number">G.2b</span><div style="flex:1"><div class="q-text" id="qMilchCountText">If Yes: Total Count of Milch Animals</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-milchcount" onclick="speakText(this.dataset.speak||'','btn-audio-milchcount')">🔊</button></div><input type="number" id="milchCount" min="0" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="0" onchange="checkMilchCountCondition()"></div>
-        <div class="q-block hidden" id="qMilkYield"><div class="q-header"><span class="q-number">G.2c</span><div style="flex:1"><div class="q-text" id="qMilkYieldText">If Yes: Daily Milk Yield (Total Liters)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-milkyield" onclick="speakText(this.dataset.speak||'','btn-audio-milkyield')">🔊</button></div><input type="number" id="milkYield" min="0" step="0.1" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="0.0"></div>
-        <div class="q-block" id="qFodder"><div class="q-header"><span class="q-number">G.3</span><div style="flex:1"><div class="q-text" id="qFodderText">Do you face fodder shortage in summer?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-fodder" onclick="speakText(this.dataset.speak||'','btn-audio-fodder')">🔊</button></div><div class="options-list" id="opts-fodder"></div></div>
-        <div class="q-block" id="qCropWater"><div class="q-header"><span class="q-number">G.4</span><div style="flex:1"><div class="q-text" id="qCropWaterText">Has your crop suffered due to water shortage in the last 2 years?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div><button class="btn-audio" id="btn-audio-cropwater" onclick="speakText(this.dataset.speak||'','btn-audio-cropwater')">🔊</button></div><div class="options-list" id="opts-cropwater"></div></div>
+        <div class="q-block" id="qOwnsLand">
+          <div class="q-header">
+            <span class="q-number">G.1</span>
+            <div style="flex:1"><div class="q-text" id="qOwnsLandText">Do you own agricultural land?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-land" onclick="speakText(this.dataset.speak||'','btn-audio-land')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-land"></div>
+        </div>
+        <div class="q-block hidden" id="qLandAcres">
+          <div class="q-header">
+            <span class="q-number">G.1a</span>
+            <div style="flex:1"><div class="q-text" id="qLandAcresText">If Yes: How many Acres?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-acres" onclick="speakText(this.dataset.speak||'','btn-audio-acres')">🔊</button>
+          </div>
+          <input type="number" id="landAcres" min="0" step="0.1" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="e.g. 2.5">
+        </div>
+        <div class="q-block" id="qMilchAnimals">
+          <div class="q-header">
+            <span class="q-number">G.2a</span>
+            <div style="flex:1"><div class="q-text" id="qMilchAnimalsText">Do you own Milch Animals (Cows/Buffaloes)?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-milch" onclick="speakText(this.dataset.speak||'','btn-audio-milch')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-milch"></div>
+        </div>
+        <div class="q-block hidden" id="qMilchCount">
+          <div class="q-header">
+            <span class="q-number">G.2b</span>
+            <div style="flex:1"><div class="q-text" id="qMilchCountText">If Yes: Total Count of Milch Animals</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-milchcount" onclick="speakText(this.dataset.speak||'','btn-audio-milchcount')">🔊</button>
+          </div>
+          <input type="number" id="milchCount" min="0" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="0" onchange="checkMilchCountCondition()">
+        </div>
+        <div class="q-block hidden" id="qMilkYield">
+          <div class="q-header">
+            <span class="q-number">G.2c</span>
+            <div style="flex:1"><div class="q-text" id="qMilkYieldText">If Yes: Daily Milk Yield (Total Liters)</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-milkyield" onclick="speakText(this.dataset.speak||'','btn-audio-milkyield')">🔊</button>
+          </div>
+          <input type="number" id="milkYield" min="0" step="0.1" style="width:160px;padding:8px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="0.0">
+        </div>
+        <div class="q-block" id="qFodder">
+          <div class="q-header">
+            <span class="q-number">G.3</span>
+            <div style="flex:1"><div class="q-text" id="qFodderText">Do you face fodder shortage in summer?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-fodder" onclick="speakText(this.dataset.speak||'','btn-audio-fodder')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-fodder"></div>
+        </div>
+        <div class="q-block" id="qCropWater">
+          <div class="q-header">
+            <span class="q-number">G.4</span>
+            <div style="flex:1"><div class="q-text" id="qCropWaterText">Has your crop suffered due to water shortage in the last 2 years?</div><div class="q-audio-hint">🔊 Click the speaker icon to hear.</div></div>
+            <button class="btn-audio" id="btn-audio-cropwater" onclick="speakText(this.dataset.speak||'','btn-audio-cropwater')">🔊</button>
+          </div>
+          <div class="options-list" id="opts-cropwater"></div>
+        </div>
       </div>
+
       <button class="btn-submit" id="submitBtn" onclick="submitForm()">✅ Submit Survey</button>
       <div class="status" id="status"></div>
     </div>
   </div>
 </div>
+<div id="tts-popup"></div>
 
 <script>
+// ================================================================
+//  GOOGLE APPS SCRIPT WEB APP URL
+//  ✅ This sends form data directly to your Google Sheet
+// ================================================================
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbzvabPi4mRuYAHgDMdEy_yv9NS7Qkpr-8c7zAB6zIaft1bTk6nXCpcWLwoKwR7M9B2J6Q/exec';
 
+// ================================================================
+//  TRANSLATIONS OBJECT (English + Tamil)
+// ================================================================
 var T = {
   "en-IN": {
-    consent: { title:"Informed Consent", text:"Namaste. I am from Hand in Hand India. We are conducting a survey to understand the needs of your village and to plan development and livelihood projects.\n\nYour answers will be kept private and used only for project planning, documentation, and improvement of our programs. Participation in this survey is completely voluntary.\n\nDo you voluntarily agree to participate in this survey?", yes:"✅ Yes, I agree", no:"❌ No, I do not agree", proceed:"Proceed", declined:"Thank you. The survey has been ended as per your choice." },
-    q: { villageName:"What is the name of your village?" },
-    villageOpts: ["Ramanujapuram","Melmadhuramangalam","Singilipadi"],
-    a: { name:"Name of Respondent", caste:"Social Category, Caste", houseType:"Type of House", familySize:"Family Size", hasAadhar:"Do you have an Aadhaar card?", aadharNum:"Aadhaar Number" },
-    aOpts: { caste:["SC (Scheduled Caste)","ST (Scheduled Tribe)","MBC (Most Backward Class)","BC (Backward Class)","OC (Other Category)"], houseType:["Kutcha (Mud/Thatched)","Semi-Pucca (Tiled/Asbestos)","Pucca (Concrete/Terrace)"], yesNo:["Yes","No"] },
-    b: { primaryIncome:"Primary Source of Income", monthlyIncome:"Average Monthly Household Income, in Rupees", rationCard:"Ration Card Type", hasLoans:"Do you have any outstanding loans?", loanSource:"Who did you borrow from?", migration:"Does any family member live outside the village for work?", migrationFreq:"Frequency of return?", shgMember:"Are you a member of a Self-Help Group, SHG?" },
-    bOpts: { primaryIncome:["Agriculture (Own Farm)","Agricultural Labor (Daily Wage)","Non-Agri Labor (Construction/MGNREGA)","Salaried / Private Job","Self-Employed / Business","Pension / Govt Support"], rationCard:["AAY (Green/Antyodaya) - Poorest","PHH (Priority/BPL)","NPHH (Non-Priority/APL)"], loanSource:["Bank","SHG","MFI (Microfinance)","Money Lender","Relative"], migrationFreq:["Daily","Weekly","Monthly","Yearly"], yesNo:["Yes","No"] },
-    c: { shgName:"Name of SHG", meetFreq:"Frequency of Meetings", shgSaves:"Do you save money in the group every month?", shgLoan:"Have you taken a loan from the SHG in the last one year?", shgLoanPurpose:"Purpose of Loan" },
-    cOpts: { meetFreq:["Weekly","Monthly","Irregular / Rarely","Not Meeting (Dormant)"], shgLoanPurpose:["Consumption / Daily Needs","Health / Medical","Education","Business / Enterprise"], yesNo:["Yes","No"] },
-    d: { schoolStatus:"Schooling Status, Male and Female", male:"Male", female:"Female", enrolled:"Currently Enrolled", dropout:"Drop-out, Stopped Going", neverEnrolled:"Never Enrolled", schoolType:"Type of School", dropoutReason:"Reason for Leaving school", travelSchool:"Travel to School, Mode and Distance", tuition:"Does the child go to private tuition?", learning:"Does the child struggle with Reading or Math?", smartphone:"Does the child have access to a Smartphone or Computer?", internet:"Can the child use the internet independently?" },
-    dOpts: { schoolType:["Govt (Government)","Govt Aided","Private"], dropoutReason:["Failed / Not interested","Financial constraints","School is too far","Needed for work","Health issues"], travelMode:["Walk","Bicycle","Bus","Parent Drops"], yesNo:["Yes","No"], yesNoDK:["Yes","No","Don't Know"] },
-    e: { waterSource:"Primary Source of Drinking Water", waterTreatment:"Do you treat water before drinking?", hasToilet:"Do you have a toilet in the house?", toiletUsable:"Is the toilet currently usable?", toiletUsers:"Who uses the toilet?", menstrualMaterial:"Menstrual Hygiene, what material do you use?", menstrualDisposal:"How do you dispose of used materials?", greenVeg:"How often does the family eat Green Leafy Vegetables?", milkFreq:"How often does the family consume Milk or Curd?", ncdMatrix:"Has a doctor diagnosed anyone in the family with these conditions?", bp:"High Blood Pressure, BP", diabetes:"Diabetes, Sugar" },
-    eOpts: { waterSource:["Piped to House","Public Tap","RO Plant","Open Well"], waterTreatment:["Boil","Filter","Cloth","None"], toiletUsers:["Everyone","Women only","Elderly only","No one uses it"], menstrualMaterial:["Sanitary Napkin","Cloth","Both"], menstrualDisposal:["Dustbin","Burn","Bury","Throw in open","Incinerator"], dietFreq:["Daily","2-3 times a week","Rarely"], yesNo:["Yes","No"] },
-    f: { segregation:"Do you separate wet and dry waste at home?", wetWaste:"Disposal Method, Wet Waste", dryWaste:"Disposal Method, Dry Waste", collector:"Does the waste collector come to your door?" },
-    fOpts: { segregation:["Always","Sometimes","Never"], wetWaste:["Give to collector (Green Bin)","Feed to cattle","Backyard Compost","Throw on street/drain"], dryWaste:["Give to collector (Red Bin)","Burn","Sell to scrap dealer","Throw on street/drain"], collector:["Daily","Weekly","Irregular","Never"] },
-    g: { ownsLand:"Do you own agricultural land?", landAcres:"How many Acres?", milchAnimals:"Do you own Milch Animals, Cows or Buffaloes?", milchCount:"Total Count of Milch Animals", milkYield:"Daily Milk Yield in Liters", fodder:"Do you face fodder shortage in summer?", cropWater:"Has your crop suffered due to water shortage in the last 2 years?" },
-    gOpts: { yesNo:["Yes","No"] }
+    consent: {
+      title: "Informed Consent",
+      text: "Namaste. I am from Hand in Hand India. We are conducting a survey to understand the needs of your village and to plan development and livelihood projects.\n\nYour answers will be kept private and used only for project planning, documentation, and improvement of our programs. Participation in this survey is completely voluntary. You may choose not to answer any question or stop the survey at any time.\n\nIn this survey, we may also request your Aadhaar number for identification and official project documentation purposes only. Your Aadhaar information will be stored securely and will not be shared with unauthorized persons. Providing your Aadhaar details is voluntary, and you may choose not to provide them.\n\nDo you voluntarily agree to participate in this survey and provide the required information?",
+      yes: "✅ Yes, I agree",
+      no: "❌ No, I do not agree",
+      proceed: "Proceed",
+      declined: "Thank you. The survey has been ended as per your choice."
+    },
+    q: { villageName: "What is the name of your village?" },
+    villageOpts: ["Ramanujapuram", "Melmadhuramangalam", "Singilipadi"],
+    a: { name: "Name of Respondent", caste: "Social Category, Caste", houseType: "Type of House", familySize: "Family Size", hasAadhar: "Do you have an Aadhaar card?", aadharNum: "Aadhaar Number" },
+    aOpts: {
+      caste: ["SC (Scheduled Caste)", "ST (Scheduled Tribe)", "MBC (Most Backward Class)", "BC (Backward Class)", "OC (Other Category)"],
+      houseType: ["Kutcha (Mud/Thatched)", "Semi-Pucca (Tiled/Asbestos)", "Pucca (Concrete/Terrace)"],
+      yesNo: ["Yes", "No"]
+    },
+    b: { primaryIncome: "Primary Source of Income", monthlyIncome: "Average Monthly Household Income, in Rupees", rationCard: "Ration Card Type", hasLoans: "Do you have any outstanding loans?", loanSource: "Who did you borrow from?", migration: "Does any family member live outside the village for work?", migrationFreq: "Frequency of return?", shgMember: "Are you a member of a Self-Help Group, SHG?" },
+    bOpts: {
+      primaryIncome: ["Agriculture (Own Farm)", "Agricultural Labor (Daily Wage)", "Non-Agri Labor (Construction/MGNREGA)", "Salaried / Private Job", "Self-Employed / Business", "Pension / Govt Support"],
+      rationCard: ["AAY (Green/Antyodaya) - Poorest", "PHH (Priority/BPL)", "NPHH (Non-Priority/APL)"],
+      loanSource: ["Bank", "SHG", "MFI (Microfinance)", "Money Lender", "Relative"],
+      migrationFreq: ["Daily", "Weekly", "Monthly", "Yearly"],
+      yesNo: ["Yes", "No"]
+    },
+    c: { shgName: "Name of SHG", meetFreq: "Frequency of Meetings", shgSaves: "Do you save money in the group every month?", shgLoan: "Have you taken a loan from the SHG in the last one year?", shgLoanPurpose: "Purpose of Loan" },
+    cOpts: {
+      meetFreq: ["Weekly", "Monthly", "Irregular / Rarely", "Not Meeting (Dormant)"],
+      shgLoanPurpose: ["Consumption / Daily Needs", "Health / Medical", "Education", "Business / Enterprise"],
+      yesNo: ["Yes", "No"]
+    },
+    d: { schoolStatus: "Schooling Status, Male and Female", male: "Male", female: "Female", enrolled: "Currently Enrolled", dropout: "Drop-out, Stopped Going", neverEnrolled: "Never Enrolled", schoolType: "Type of School", dropoutReason: "Reason for Leaving school", travelSchool: "Travel to School, Mode and Distance", tuition: "Does the child go to private tuition?", learning: "Does the child struggle with Reading or Math?", smartphone: "Does the child have access to a Smartphone or Computer?", internet: "Can the child use the internet independently?" },
+    dOpts: {
+      schoolType: ["Govt (Government)", "Govt Aided (Government Aided)", "Private"],
+      dropoutReason: ["Failed / Not interested in studies", "Financial constraints / Fees", "School is too far / Transport issue", "Needed for work / Sibling care", "Health issues"],
+      travelMode: ["Walk", "Bicycle", "Bus", "Parent Drops"],
+      yesNo: ["Yes", "No"],
+      yesNoDK: ["Yes", "No", "Don't Know"]
+    },
+    e: { waterSource: "Primary Source of Drinking Water", waterTreatment: "Do you treat water before drinking?", hasToilet: "Do you have a toilet in the house?", toiletUsable: "Is the toilet currently usable?", toiletUsers: "Who uses the toilet?", menstrualMaterial: "Menstrual Hygiene, what material do you use?", menstrualDisposal: "How do you dispose of used materials?", greenVeg: "How often does the family eat Green Leafy Vegetables?", milkFreq: "How often does the family consume Milk or Curd?", ncdMatrix: "Has a doctor diagnosed anyone in the family with these conditions?", bp: "High Blood Pressure, BP", diabetes: "Diabetes, Sugar" },
+    eOpts: {
+      waterSource: ["Piped to House", "Public Tap", "RO Plant", "Open Well"],
+      waterTreatment: ["Boil", "Filter", "Cloth", "None / No treatment"],
+      toiletUsers: ["Everyone", "Women only", "Elderly only", "No one uses it"],
+      menstrualMaterial: ["Sanitary Napkin", "Cloth", "Both"],
+      menstrualDisposal: ["Dustbin", "Burn", "Bury", "Throw in open", "Incinerator"],
+      dietFreq: ["Daily", "2-3 times a week", "Rarely"],
+      yesNo: ["Yes", "No"]
+    },
+    f: { segregation: "Do you separate wet and dry waste at home?", wetWaste: "Disposal Method, Wet Waste", dryWaste: "Disposal Method, Dry Waste", collector: "Does the waste collector come to your door?" },
+    fOpts: {
+      segregation: ["Always", "Sometimes", "Never"],
+      wetWaste: ["Give to collector (Green Bin)", "Feed to cattle", "Backyard Compost", "Throw on street/drain"],
+      dryWaste: ["Give to collector (Red Bin)", "Burn", "Sell to scrap dealer", "Throw on street/drain"],
+      collector: ["Daily", "Weekly", "Irregular", "Never"]
+    },
+    g: { ownsLand: "Do you own agricultural land?", landAcres: "How many Acres?", milchAnimals: "Do you own Milch Animals, Cows or Buffaloes?", milchCount: "Total Count of Milch Animals", milkYield: "Daily Milk Yield in Liters", fodder: "Do you face fodder shortage in summer?", cropWater: "Has your crop suffered due to water shortage in the last 2 years?" },
+    gOpts: { yesNo: ["Yes", "No"] }
   },
   "ta-IN": {
-    consent: { title:"தகவல் சம்மதம்", text:"வணக்கம். நான் ஹேண்ட் இன் ஹேண்ட் இந்தியா நிறுவனத்திலிருந்து வருகிறேன். உங்கள் கிராமத்தின் தேவைகளை புரிந்துகொண்டு, திட்டங்களை திட்டமிட கணக்கெடுப்பு நடத்துகிறோம். உங்கள் பதில்கள் ரகசியமாக வைக்கப்படும். பங்கேற்பது தன்னார்வமானது. நீங்கள் சம்மதிக்கிறீர்களா?", yes:"✅ ஆம், நான் சம்மதிக்கிறேன்", no:"❌ இல்லை, நான் சம்மதிக்கவில்லை", proceed:"தொடர்க", declined:"நன்றி. உங்கள் விருப்பத்திற்கு இணங்க கணக்கெடுப்பு முடிக்கப்பட்டது." },
-    q: { villageName:"உங்கள் கிராமத்தின் பெயர் என்ன?" },
-    villageOpts: ["ராமானுஜபுரம்","மேல்மதுரமங்கலம்","சிங்கிலிபாடி"],
-    a: { name:"பதிலளிப்பவரின் பெயர்", caste:"சமூக வகை, சாதி", houseType:"வீட்டின் வகை", familySize:"குடும்ப அளவு", hasAadhar:"உங்களிடம் ஆதார் அட்டை இருக்கிறதா?", aadharNum:"ஆதார் எண்" },
-    aOpts: { caste:["SC (தாழ்த்தப்பட்ட சாதி)","ST (பழங்குடியினர்)","MBC (மிகவும் பிற்படுத்தப்பட்டவர்கள்)","BC (பிற்படுத்தப்பட்டவர்கள்)","OC (பொது வகை)"], houseType:["குடிசை வீடு","ஓடு வீடு","கான்கிரீட் வீடு"], yesNo:["ஆம்","இல்லை"] },
-    b: { primaryIncome:"முதன்மை வருமான ஆதாரம்", monthlyIncome:"சராசரி மாதாந்திர வருமானம், ரூபாயில்", rationCard:"ரேஷன் அட்டை வகை", hasLoans:"நிலுவையில் கடன்கள் உள்ளனவா?", loanSource:"யாரிடம் கடன் வாங்கினீர்கள்?", migration:"குடும்பத்தில் யாராவது வேலைக்காக கிராமத்துக்கு வெளியே இருக்கிறார்களா?", migrationFreq:"எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?", shgMember:"நீங்கள் சுய உதவி குழு உறுப்பினரா?" },
-    bOpts: { primaryIncome:["விவசாயம் (சொந்த நிலம்)","விவசாய கூலி","கட்டிட வேலை","ஊதியம் வேலை","சொந்த தொழில்","ஓய்வூதியம்"], rationCard:["AAY (பச்சை அட்டை)","PHH (BPL)","NPHH (APL)"], loanSource:["வங்கி","SHG","நுண்கடன்","தனியார் கடன்காரர்","உறவினர்"], migrationFreq:["தினமும்","வாரம் ஒருமுறை","மாதம் ஒருமுறை","வருடம் ஒருமுறை"], yesNo:["ஆம்","இல்லை"] },
-    c: { shgName:"சுய உதவி குழு பெயர்", meetFreq:"கூட்டம் நடைபெறும் காலம்", shgSaves:"ஒவ்வொரு மாதமும் குழுவில் சேமிக்கிறீர்களா?", shgLoan:"கடந்த ஒரு வருடத்தில் SHG கடன் வாங்கினீர்களா?", shgLoanPurpose:"கடன் வாங்கியதன் நோக்கம்" },
-    cOpts: { meetFreq:["வாரம் ஒருமுறை","மாதம் ஒருமுறை","ஒழுங்கற்ற முறையில்","சந்திப்பில்லை"], shgLoanPurpose:["அன்றாட தேவை","மருத்துவம்","கல்வி","தொழில்"], yesNo:["ஆம்","இல்லை"] },
-    d: { schoolStatus:"கல்வி நிலை, ஆண் மற்றும் பெண்", male:"ஆண்", female:"பெண்", enrolled:"தற்போது பள்ளியில் படிக்கிறார்", dropout:"படிப்பை இடையில் நிறுத்தினார்", neverEnrolled:"எப்போதும் பள்ளிக்கு சேர்க்கப்படவில்லை", schoolType:"பள்ளி வகை", dropoutReason:"பள்ளி விட்ட காரணம்", travelSchool:"பள்ளிக்கு பயண முறை மற்றும் தூரம்", tuition:"குழந்தை தனியார் ட்யூஷனுக்கு செல்கிறதா?", learning:"குழந்தைக்கு படிக்க அல்லது கணக்கில் சிரமம் உள்ளதா?", smartphone:"வீட்டில் ஸ்மார்ட்போன் அல்லது கணினி வசதி உள்ளதா?", internet:"குழந்தை சுதந்திரமாக இணையம் பயன்படுத்த முடியுமா?" },
-    dOpts: { schoolType:["அரசு பள்ளி","அரசு உதவி பெறும் பள்ளி","தனியார் பள்ளி"], dropoutReason:["தோல்வி / ஆர்வமில்லை","நிதி சிரமம்","பள்ளி மிகவும் தூரத்தில்","வேலை தேவை","உடல்நல பிரச்சினை"], travelMode:["நடை","சைக்கிள்","பஸ்","பெற்றோர் அழைத்து செல்கிறார்"], yesNo:["ஆம்","இல்லை"], yesNoDK:["ஆம்","இல்லை","தெரியாது"] },
-    e: { waterSource:"குடிநீர் முக்கிய மூலாதாரம்", waterTreatment:"குடிக்கும் முன் தண்ணீரை சுத்திகரிக்கிறீர்களா?", hasToilet:"வீட்டில் கழிவறை இருக்கிறதா?", toiletUsable:"கழிவறை தற்போது பயன்படுத்த முடிகிறதா?", toiletUsers:"யார் கழிவறை பயன்படுத்துகிறார்கள்?", menstrualMaterial:"மாதவிடாய் சுகாதாரம், என்ன பயன்படுத்துகிறீர்கள்?", menstrualDisposal:"பயன்படுத்திய பொருட்களை எப்படி அகற்றுகிறீர்கள்?", greenVeg:"குடும்பம் எவ்வளவு அடிக்கடி கீரை சாப்பிடுகிறது?", milkFreq:"குடும்பம் எவ்வளவு அடிக்கடி பால் அல்லது தயிர் சாப்பிடுகிறது?", ncdMatrix:"மருத்துவர் குடும்பத்தில் யாருக்கும் இந்த நோய்கள் இருப்பதாக சொன்னார்களா?", bp:"அதிக இரத்த அழுத்தம்", diabetes:"நீரிழிவு நோய்" },
-    eOpts: { waterSource:["வீட்டிற்கு குழாய் தண்ணீர்","பொது குழாய்","RO ஆலை","திறந்த கிணறு"], waterTreatment:["கொதிக்க வைக்கிறோம்","வடிகட்டுகிறோம்","துணி வடிகட்டல்","எந்த சுத்திகரிப்பும் இல்லை"], toiletUsers:["அனைவரும்","பெண்கள் மட்டும்","முதியோர் மட்டும்","யாரும் பயன்படுத்துவதில்லை"], menstrualMaterial:["சானிட்டரி நாப்கின்","துணி","இரண்டும்"], menstrualDisposal:["குப்பைத் தொட்டி","எரித்துவிடுகிறோம்","புதைக்கிறோம்","திறந்த வெளியில்","இன்சினரேட்டர்"], dietFreq:["தினமும்","வாரம் 2-3 முறை","அரிதாக"], yesNo:["ஆம்","இல்லை"] },
-    f: { segregation:"வீட்டில் ஈர மற்றும் உலர் கழிவுகளை தனியாக பிரிக்கிறீர்களா?", wetWaste:"ஈர கழிவு அகற்றும் முறை", dryWaste:"உலர் கழிவு அகற்றும் முறை", collector:"தூய்மைக்காவலர் வீட்டிற்கு வருகிறார்களா?" },
-    fOpts: { segregation:["எப்போதும்","சில நேரங்களில்","ஒருபோதும் இல்லை"], wetWaste:["சேகரிப்பவரிடம் கொடுக்கிறோம்","கால்நடைகளுக்கு தீவனமாக","வீட்டில் உரமாக மாற்றுகிறோம்","சாலையில் தூக்கி எறிகிறோம்"], dryWaste:["சேகரிப்பவரிடம் கொடுக்கிறோம்","எரித்துவிடுகிறோம்","குப்பியங்காரருக்கு விற்கிறோம்","சாலையில் தூக்கி எறிகிறோம்"], collector:["தினமும்","வாரம் ஒருமுறை","ஒழுங்கற்ற முறையில்","வருவதில்லை"] },
-    g: { ownsLand:"விவசாய நிலம் வைத்திருக்கிறீர்களா?", landAcres:"எத்தனை ஏக்கர்?", milchAnimals:"பால் தரும் மாடுகள் அல்லது எருமைகள் வைத்திருக்கிறீர்களா?", milchCount:"மொத்த கால்நடை எண்ணிக்கை", milkYield:"தினசரி பால் அளவு, லிட்டரில்", fodder:"கோடையில் தீவன பற்றாக்குறை இருக்கிறதா?", cropWater:"கடந்த 2 வருடங்களில் நீர் பற்றாக்குறையால் பயிர் பாதிக்கப்பட்டதா?" },
-    gOpts: { yesNo:["ஆம்","இல்லை"] }
+    consent: {
+      title: "தகவல் சம்மதம்",
+      text: "வணக்கம். நான் ஹேண்ட் இன் ஹேண்ட் இந்தியா நிறுவனத்திலிருந்து வருகிறேன். உங்கள் கிராமத்தின் தேவைகளை புரிந்துகொள்ளவும், வளர்ச்சி மற்றும் வாழ்வாதார திட்டங்களை திட்டமிடவும் நாங்கள் ஒரு கணக்கெடுப்பு நடத்துகிறோம்.\n\nஉங்கள் பதில்கள் தனிப்பட்டதாக வைக்கப்படும், திட்ட திட்டமிடல், ஆவணப்படுத்தல் மற்றும் நிரல்களை மேம்படுத்துவதற்கு மட்டுமே பயன்படுத்தப்படும். இந்த கணக்கெடுப்பில் பங்கேற்பது முற்றிலும் தன்னார்வமானது. நீங்கள் எந்த கேள்விக்கும் பதில் சொல்ல மறுக்கலாம் அல்லது எந்த நேரத்திலும் கணக்கெடுப்பை நிறுத்தலாம்.\n\nகணக்கெடுப்பில் அடையாளம் காணவும் திட்ட ஆவணங்களுக்காகவும் ஆதார் எண் கேட்கப்படலாம். உங்கள் ஆதார் தகவல் பாதுகாப்பாக சேமிக்கப்படும். அதை வழங்குவது தன்னார்வமானது.\n\nநீங்கள் தன்னார்வமாக இந்த கணக்கெடுப்பில் பங்கேற்க சம்மதிக்கிறீர்களா?",
+      yes: "✅ ஆம், நான் சம்மதிக்கிறேன்",
+      no: "❌ இல்லை, நான் சம்மதிக்கவில்லை",
+      proceed: "தொடர்க",
+      declined: "நன்றி. உங்கள் விருப்பத்திற்கு இணங்க கணக்கெடுப்பு முடிக்கப்பட்டது."
+    },
+    q: { villageName: "உங்கள் கிராமத்தின் பெயர் என்ன?" },
+    villageOpts: ["ராமானுஜபுரம்", "மேல்மதுரமங்கலம்", "சிங்கிலிபாடி"],
+    a: { name: "பதிலளிப்பவரின் பெயர்", caste: "சமூக வகை, சாதி", houseType: "வீட்டின் வகை", familySize: "குடும்ப அளவு", hasAadhar: "உங்களிடம் ஆதார் அட்டை இருக்கிறதா?", aadharNum: "ஆதார் எண்" },
+    aOpts: {
+      caste: ["SC (தாழ்த்தப்பட்ட சாதி)", "ST (பழங்குடியினர்)", "MBC (மிகவும் பிற்படுத்தப்பட்டவர்கள்)", "BC (பிற்படுத்தப்பட்டவர்கள்)", "OC (பொது வகை)"],
+      houseType: ["குடிசை வீடு (மண்/கூரை)", "ஓடு வீடு", "கான்கிரீட்/மாடி வீடு"],
+      yesNo: ["ஆம்", "இல்லை"]
+    },
+    b: { primaryIncome: "முதன்மை வருமான ஆதாரம்", monthlyIncome: "சராசரி மாதாந்திர வருமானம், ரூபாயில்", rationCard: "ரேஷன் அட்டை வகை", hasLoans: "நிலுவையில் கடன்கள் உள்ளனவா?", loanSource: "யாரிடம் கடன் வாங்கினீர்கள்?", migration: "குடும்பத்தில் யாராவது வேலைக்காக கிராமத்துக்கு வெளியே இருக்கிறார்களா?", migrationFreq: "எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?", shgMember: "நீங்கள் சுய உதவி குழு உறுப்பினரா?" },
+    bOpts: {
+      primaryIncome: ["விவசாயம் (சொந்த நிலம்)", "விவசாய கூலி (தினக் கூலி)", "கட்டிட/MGNREGA வேலை", "ஊதியம் / தனியார் வேலை", "சொந்த தொழில்", "ஓய்வூதியம் / அரசு உதவி"],
+      rationCard: ["AAY (பச்சை அட்டை/அந்தியோதய)", "PHH (முன்னுரிமை/BPL)", "NPHH (முன்னுரிமை இல்லா/APL)"],
+      loanSource: ["வங்கி", "SHG", "MFI (நுண்கடன்)", "தனியார் கடன்காரர்", "உறவினர்"],
+      migrationFreq: ["தினமும்", "வாரம் ஒருமுறை", "மாதம் ஒருமுறை", "வருடம் ஒருமுறை"],
+      yesNo: ["ஆம்", "இல்லை"]
+    },
+    c: { shgName: "சுய உதவி குழு (SHG) பெயர்", meetFreq: "கூட்டம் நடைபெறும் காலம்:", shgSaves: "ஒவ்வொரு மாதமும் குழுவில் சேமிக்கிறீர்களா?", shgLoan: "கடந்த ஒரு வருடத்தில் SHG கடன் வாங்கினீர்களா?", shgLoanPurpose: "கடன் வாங்கியதன் நோக்கம்" },
+    cOpts: {
+      meetFreq: ["வாரம் ஒருமுறை", "மாதம் ஒருமுறை", "ஒழுங்கற்ற முறையில்", "சந்திப்பில்லை (செயலிழந்த)"],
+      shgLoanPurpose: ["நுகர்வு / அன்றாட தேவை", "உடல்நலம் / மருத்துவம்", "கல்வி", "தொழில் / நிறுவனம்"],
+      yesNo: ["ஆம்", "இல்லை"]
+    },
+    d: { schoolStatus: "கல்வி நிலை, ஆண் மற்றும் பெண்", male: "ஆண்", female: "பெண்", enrolled: "தற்போது பள்ளியில் படிக்கிறார்", dropout: "படிப்பை இடையில் நிறுத்தினார்", neverEnrolled: "எப்போதும் பள்ளிக்கு சேர்க்கப்படவில்லை", schoolType: "பள்ளி வகை", dropoutReason: "பள்ளி விட்ட காரணம்", travelSchool: "பள்ளிக்கு பயண முறை மற்றும் தூரம்", tuition: "குழந்தை தனியார் ட்யூஷனுக்கு செல்கிறதா?", learning: "குழந்தைக்கு படிக்க அல்லது கணக்கில் சிரமம் உள்ளதா?", smartphone: "வீட்டில் ஸ்மார்ட்போன் அல்லது கணினி வசதி உள்ளதா?", internet: "குழந்தை சுதந்திரமாக இணையம் பயன்படுத்த முடியுமா?" },
+    dOpts: {
+      schoolType: ["அரசு பள்ளி", "அரசு உதவி பெறும் பள்ளி", "தனியார் பள்ளி"],
+      dropoutReason: ["தோல்வி / படிப்பில் ஆர்வமில்லை", "நிதி சிரமம் / கட்டணம்", "பள்ளி மிகவும் தூரத்தில் / போக்குவரத்து சிக்கல்", "வேலை / சகோதர பராமரிப்பு தேவை", "உடல்நல பிரச்சினை"],
+      travelMode: ["நடை", "சைக்கிள்", "பஸ்", "பெற்றோர் அழைத்து செல்கிறார்"],
+      yesNo: ["ஆம்", "இல்லை"],
+      yesNoDK: ["ஆம்", "இல்லை", "தெரியாது"]
+    },
+    e: { waterSource: "குடிநீர் முக்கிய மூலாதாரம்:", waterTreatment: "குடிக்கும் முன் தண்ணீரை சுத்திகரிக்கிறீர்களா?", hasToilet: "வீட்டில் கழிவறை இருக்கிறதா?", toiletUsable: "கழிவறை தற்போது பயன்படுத்த முடிகிறதா?", toiletUsers: "யார் கழிவறை பயன்படுத்துகிறார்கள்?", menstrualMaterial: "மாதவிடாய் சுகாதாரம், என்ன பயன்படுத்துகிறீர்கள்?", menstrualDisposal: "பயன்படுத்திய பொருட்களை எப்படி அகற்றுகிறீர்கள்?", greenVeg: "குடும்பம் எவ்வளவு அடிக்கடி கீரை சாப்பிடுகிறது?", milkFreq: "குடும்பம் எவ்வளவு அடிக்கடி பால் அல்லது தயிர் சாப்பிடுகிறது?", ncdMatrix: "மருத்துவர் குடும்பத்தில் யாருக்கும் இந்த நோய்கள் இருப்பதாக சொன்னார்களா?", bp: "அதிக இரத்த அழுத்தம், BP", diabetes: "நீரிழிவு, சர்க்கரை நோய்" },
+    eOpts: {
+      waterSource: ["வீட்டிற்கு குழாய் தண்ணீர்", "பொது குழாய்", "RO ஆலை", "திறந்த கிணறு"],
+      waterTreatment: ["கொதிக்க வைக்கிறோம்", "வடிகட்டுகிறோம்", "துணி வடிகட்டல்", "எந்த சுத்திகரிப்பும் இல்லை"],
+      toiletUsers: ["அனைவரும்", "பெண்கள் மட்டும்", "முதியோர் மட்டும்", "யாரும் பயன்படுத்துவதில்லை"],
+      menstrualMaterial: ["சானிட்டரி நாப்கின்", "துணி", "இரண்டும்"],
+      menstrualDisposal: ["குப்பைத் தொட்டி", "எரித்துவிடுகிறோம்", "புதைக்கிறோம்", "திறந்த வெளியில் தூக்கி எறிகிறோம்", "இன்சினரேட்டர்"],
+      dietFreq: ["தினமும்", "வாரம் 2-3 முறை", "அரிதாக"],
+      yesNo: ["ஆம்", "இல்லை"]
+    },
+    f: { segregation: "வீட்டில் ஈர மற்றும் உலர் கழிவுகளை தனியாக பிரிக்கிறீர்களா?", wetWaste: "ஈர கழிவு அகற்றும் முறை", dryWaste: "உலர் கழிவு அகற்றும் முறை", collector: "தூய்மைக்காவலர் வீட்டிற்கு வருகிறார்களா?" },
+    fOpts: {
+      segregation: ["எப்போதும்", "சில நேரங்களில்", "ஒருபோதும் இல்லை"],
+      wetWaste: ["சேகரிப்பவரிடம் கொடுக்கிறோம் (பச்சை தொட்டி)", "கால்நடைகளுக்கு தீவனமாக", "வீட்டில் உரமாக மாற்றுகிறோம்", "சாலையில் / கால்வாயில் தூக்கி எறிகிறோம்"],
+      dryWaste: ["சேகரிப்பவரிடம் கொடுக்கிறோம் (சிவப்பு தொட்டி)", "எரித்துவிடுகிறோம்", "குப்பியங்காரருக்கு விற்கிறோம்", "சாலையில் / கால்வாயில் தூக்கி எறிகிறோம்"],
+      collector: ["தினமும்", "வாரம் ஒருமுறை", "ஒழுங்கற்ற முறையில்", "வருவதில்லை"]
+    },
+    g: { ownsLand: "விவசாய நிலம் வைத்திருக்கிறீர்களா?", landAcres: "எத்தனை ஏக்கர்?", milchAnimals: "பால் தரும் மாடுகள் அல்லது எருமைகள் வைத்திருக்கிறீர்களா?", milchCount: "மொத்த கால்நடை எண்ணிக்கை", milkYield: "தினசரி பால் அளவு, லிட்டரில்", fodder: "கோடையில் தீவன பற்றாக்குறை இருக்கிறதா?", cropWater: "கடந்த 2 வருடங்களில் நீர் பற்றாக்குறையால் பயிர் பாதிக்கப்பட்டதா?" },
+    gOpts: { yesNo: ["ஆம்", "இல்லை"] }
   }
 };
 
-var lang="en-IN", formSubmitted=false, gpsLat="", gpsLng="";
-var isRec=false, recog=null, curMicBtn=null, curMicField=null;
-var ttsActive=false, activeBtnId=null, _curAudio=null;
+// ================================================================
+//  STATE
+// ================================================================
+var lang = "en-IN";
+var formSubmitted = false;
+var gpsLat = "", gpsLng = "";
+var isRec = false, recog = null, curMicBtn = null, curMicField = null;
+var photoBase64 = null;
 
-window.onload=function(){ captureGPS(); setDate(); };
+// ================================================================
+//  INIT
+// ================================================================
+window.onload = function() { captureGPS(); setDate(); };
 
-function captureGPS(){
-  if(navigator.geolocation){
+function captureGPS() {
+  if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      function(p){gpsLat=p.coords.latitude.toFixed(6);gpsLng=p.coords.longitude.toFixed(6);var e=document.getElementById('gpsDisplay');if(e)e.textContent='Lat: '+gpsLat+', Long: '+gpsLng;},
-      function(){var e=document.getElementById('gpsDisplay');if(e)e.textContent='GPS unavailable';},
-      {timeout:10000,enableHighAccuracy:true}
+      function(pos) {
+        gpsLat = pos.coords.latitude.toFixed(6);
+        gpsLng = pos.coords.longitude.toFixed(6);
+        var el = document.getElementById('gpsDisplay');
+        if (el) el.textContent = 'Lat: ' + gpsLat + ', Long: ' + gpsLng;
+      },
+      function() {
+        var el = document.getElementById('gpsDisplay');
+        if (el) el.textContent = 'GPS unavailable';
+      },
+      { timeout: 10000, enableHighAccuracy: true }
     );
   }
 }
 
-function setDate(){
-  var d=new Date();
-  var ds=d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear();
-  var e=document.getElementById('dateDisplay');if(e)e.textContent=ds;
+function setDate() {
+  var d = new Date();
+  var dateStr = d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+  var el = document.getElementById('dateDisplay');
+  if (el) el.textContent = dateStr;
 }
 
-function showProcessingOverlay(on){
-  var ov=document.getElementById('submit-overlay');if(!ov)return;
-  var isTa=(lang==='ta-IN');
-  if(on){
-    document.getElementById('overlay-msg').textContent=isTa?'⏳ கணக்கெடுப்பை சமர்ப்பிக்கிறோம்…':'⏳ Submitting your survey…';
-    document.getElementById('overlay-submsg').textContent=isTa?'காத்திருக்கவும்.':'Please wait. Do not close this page.';
+function showProcessingOverlay(on) {
+  var ov = document.getElementById('submit-overlay');
+  if (!ov) return;
+  var isTa = (lang === 'ta-IN');
+  if (on) {
+    document.getElementById('overlay-spinner').style.display = 'block';
+    document.getElementById('overlay-msg').textContent = isTa ? '⏳ கணக்கெடுப்பை சமர்ப்பிக்கிறோம்…' : '⏳ Submitting your survey…';
+    document.getElementById('overlay-submsg').textContent = isTa ? 'காத்திருக்கவும். பக்கத்தை மூடாதீர்கள்.' : 'Please wait. Do not close this page.';
     ov.classList.add('visible');
-  } else { ov.classList.remove('visible'); }
+  } else {
+    ov.classList.remove('visible');
+  }
 }
 
-function selectLang(l){
-  stopAllAudio(); lang=l;
-  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('btn-lang-'+(l==='en-IN'?'en':'ta')).classList.add('active');
-  var survey=document.getElementById('stepSurvey');
-  if(survey&&survey.style.display!=='none'){renderAllOptions();updateUILabels();}
-}
-
-function showConsent(){
-  document.getElementById('stepLang').style.display='none';
-  document.getElementById('stepConsent').style.display='block';
-  var t=T[lang].consent;
-  document.getElementById('consentTitle').textContent='📜 '+t.title;
-  document.getElementById('consentText').textContent=t.text;
-  document.getElementById('consentYesLabel').textContent=t.yes;
-  document.getElementById('consentNoLabel').textContent=t.no;
-  document.getElementById('consentProceedLabel').textContent=t.proceed;
-  var lbl=document.getElementById('consentAudioLabel');
-  if(lbl)lbl.textContent=lang==='ta-IN'?'சம்மதத்தை கேளுங்கள்':'Listen to Consent';
-}
-
-function selectConsent(val){
-  document.querySelectorAll('.consent-opt').forEach(function(o){o.classList.remove('selected');});
-  if(val==='yes'){document.getElementById('consentYesOpt').classList.add('selected');document.getElementById('consentYes').checked=true;}
-  else{document.getElementById('consentNoOpt').classList.add('selected');document.getElementById('consentNo').checked=true;}
-}
-
-function proceedFromConsent(){
-  var yes=document.getElementById('consentYes').checked;
-  var no=document.getElementById('consentNo').checked;
-  if(!yes&&!no){alert(lang==='ta-IN'?'தயவுசெய்து ஒரு விருப்பத்தை தேர்ந்தெடுக்கவும்.':'Please select Yes or No to proceed.');return;}
+// ================================================================
+//  LANGUAGE SELECTION
+// ================================================================
+function selectLang(l) {
   stopAllAudio();
-  if(no){document.getElementById('stepConsent').style.display='none';document.getElementById('appBody').innerHTML='<div style="text-align:center;padding:40px;font-size:16px;color:#555">'+T[lang].consent.declined+'</div>';return;}
-  document.getElementById('stepConsent').style.display='none';
-  document.getElementById('stepSurvey').style.display='block';
-  renderAllOptions(); updateUILabels();
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('btn-lang-' + (l === 'en-IN' ? 'en' : 'ta')).classList.add('active');
+  var survey = document.getElementById('stepSurvey');
+  if (survey && survey.style.display !== 'none') { renderAllOptions(); updateUILabels(); }
 }
 
-function setTxt(id,text){var el=document.getElementById(id);if(el)el.textContent=text;}
+// ================================================================
+//  CONSENT
+// ================================================================
+function showConsent() {
+  document.getElementById('stepLang').style.display = 'none';
+  document.getElementById('stepConsent').style.display = 'block';
+  var t = T[lang].consent;
+  document.getElementById('consentTitle').textContent = '📜 ' + t.title;
+  document.getElementById('consentText').textContent = t.text;
+  document.getElementById('consentYesLabel').textContent = t.yes;
+  document.getElementById('consentNoLabel').textContent = t.no;
+  document.getElementById('consentProceedLabel').textContent = t.proceed;
+  var lbl = document.getElementById('consentAudioLabel');
+  if (lbl) lbl.textContent = lang === 'ta-IN' ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+}
 
-function updateUILabels(){
-  var t=T[lang]; var isTa=lang==='ta-IN';
+function selectConsent(val) {
+  document.querySelectorAll('.consent-opt').forEach(function(o) { o.classList.remove('selected'); });
+  if (val === 'yes') { document.getElementById('consentYesOpt').classList.add('selected'); document.getElementById('consentYes').checked = true; }
+  else { document.getElementById('consentNoOpt').classList.add('selected'); document.getElementById('consentNo').checked = true; }
+}
+
+function proceedFromConsent() {
+  var yes = document.getElementById('consentYes').checked;
+  var no  = document.getElementById('consentNo').checked;
+  if (!yes && !no) { alert(lang === 'ta-IN' ? 'தயவுசெய்து ஒரு விருப்பத்தை தேர்ந்தெடுக்கவும்.' : 'Please select Yes or No to proceed.'); return; }
+  stopAllAudio();
+  if (no) {
+    document.getElementById('stepConsent').style.display = 'none';
+    document.getElementById('appBody').innerHTML = '<div style="text-align:center;padding:40px;font-size:16px;color:#555">' + T[lang].consent.declined + '</div>';
+    return;
+  }
+  document.getElementById('stepConsent').style.display = 'none';
+  document.getElementById('stepSurvey').style.display = 'block';
+  renderAllOptions();
+  updateUILabels();
+}
+
+// ================================================================
+//  UI LABELS
+// ================================================================
+function updateUILabels() {
+  var t = T[lang];
+  var isTa = lang === 'ta-IN';
   setTxt('sec0Title','📋 '+(isTa?'பிரிவு 0: மெட்டாடேட்டா':'SECTION 0: METADATA'));
   setTxt('secATitle','👤 '+(isTa?'பிரிவு A: சமூக-ஜனத்தொகை விவரம்':'SECTION A: SOCIO-DEMOGRAPHIC PROFILE'));
   setTxt('secBTitle','💼 '+(isTa?'பிரிவு B: வாழ்வாதாரம் மற்றும் பொருளாதார நிலை':'SECTION B: LIVELIHOODS & ECONOMIC STATUS'));
-  setTxt('secCTitle','👩‍👩‍👧 '+(isTa?'பிரிவு C: பெண்கள் மேம்பாடு':'SECTION C: WOMEN EMPOWERMENT (SHG STATUS)'));
-  setTxt('secCSubtitle',isTa?'குடும்பத்தின் பெண் தலைவரிடம் மட்டும் கேளுங்கள்':'Ask specifically to the female head of household | Skip if not an SHG Member');
+  setTxt('secCTitle','👩‍👩‍👧 '+(isTa?'பிரிவு C: பெண்கள் மேம்பாடு (SHG நிலை)':'SECTION C: WOMEN EMPOWERMENT (SHG STATUS)'));
+  setTxt('secCSubtitle',isTa?'குடும்பத்தின் பெண் தலைவரிடம் மட்டும் கேளுங்கள் | SHG உறுப்பினர் இல்லாவிட்டால் தவிர்க்கவும்':'Ask specifically to the female head of household | Skip if not an SHG Member');
   setTxt('secDTitle','📚 '+(isTa?'பிரிவு D: கல்வி மற்றும் டிஜிட்டல் அணுகல்':'SECTION D: EDUCATION & DIGITAL ACCESS'));
   setTxt('secDSubtitle',isTa?'வீட்டில் 5-18 வயது குழந்தைகள் இருந்தால் கேளுங்கள்':'Ask for every child aged 5-18 years in the household');
   setTxt('secETitle','🏥 '+(isTa?'பிரிவு E: சுகாதாரம், ஊட்டசத்து மற்றும் WASH':'SECTION E: HEALTH, NUTRITION & WASH'));
-  setTxt('secFTitle','🗑️ '+(isTa?'பிரிவு F: கழிவு மேலாண்மை':'SECTION F: WASTE MANAGEMENT'));
-  setTxt('secGTitle','🌾 '+(isTa?'பிரிவு G: வேளாண்மை மற்றும் கால்நடை':'SECTION G: AGRICULTURE & LIVESTOCK'));
+  setTxt('secFTitle','🗑️ '+(isTa?'பிரிவு F: கழிவு மேலாண்மை':'SECTION F: WASTE MANAGEMENT (SWM)'));
+  setTxt('secGTitle','🌾 '+(isTa?'பிரிவு G: வேளாண்மை மற்றும் கால்நடை':'SECTION G: AGRICULTURE & LIVESTOCK (NRM)'));
   setTxt('qVillageText',t.q.villageName); setTxt('qNameText',t.a.name);
   setTxt('qCasteText',isTa?'சமூக வகை (சாதி)':'Social Category (Caste)');
   setTxt('qHouseTypeText',t.a.houseType); setTxt('qFamilySizeText',t.a.familySize);
@@ -389,71 +928,87 @@ function updateUILabels(){
   setTxt('lblChildren',isTa?'குழந்தைகள் (0-17)':'Children (0-17)');
   setTxt('lblTotal',isTa?'மொத்த உறுப்பினர்கள்':'Total Members');
   setTxt('qHasAadharText',t.a.hasAadhar); setTxt('qAadharNumText',t.a.aadharNum);
-  setTxt('qPrimaryIncomeText',t.b.primaryIncome); setTxt('qMonthlyIncomeText',isTa?'சராசரி மாதாந்திர வருமானம் (INR)':'Average Monthly Household Income – INR');
-  setTxt('qRationCardText',t.b.rationCard); setTxt('qHasLoansText',t.b.hasLoans);
-  setTxt('qLoanSourceText',isTa?'ஆமெனில்: யாரிடம் கடன் வாங்கினீர்கள்?':'If Yes: Who did you borrow from?');
-  setTxt('qMigrationText',t.b.migration); setTxt('qMigrationFreqText',isTa?'ஆமெனில்: எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?':'If Yes: Frequency of return?');
-  setTxt('qSHGMemberText',t.b.shgMember); setTxt('qSHGNameText',t.c.shgName);
-  setTxt('qSHGMeetFreqText',t.c.meetFreq); setTxt('qSHGSavesText',t.c.shgSaves);
-  setTxt('qSHGLoanText',t.c.shgLoan); setTxt('qSHGLoanPurposeText',isTa?'ஆமெனில்: கடன் வாங்கியதன் நோக்கம்?':'If Yes: Purpose of Loan?');
-  setTxt('matD1Row',isTa?'கல்வி நிலை':'Schooling Status'); setTxt('matD1Male',t.d.male); setTxt('matD1Female',t.d.female);
+  setTxt('qPrimaryIncomeText',t.b.primaryIncome);
+  setTxt('qMonthlyIncomeText',isTa?'சராசரி மாதாந்திர வருமானம் (INR)':'Average Monthly Household Income (Estimate) – INR');
+  setTxt('qRationCardText',t.b.rationCard);
+  setTxt('qHasLoansText',isTa?'தற்போது நிலுவையில் உள்ள கடன்கள் உள்ளனவா?':'Do you currently have any outstanding loans?');
+  setTxt('qLoanSourceText',isTa?'ஆமெனில்: யாரிடம் கடன் வாங்கினீர்கள்? (பல தேர்வுகள்)':'If Yes: Who did you borrow from? (Select all that apply)');
+  setTxt('qMigrationText',t.b.migration);
+  setTxt('qMigrationFreqText',isTa?'ஆமெனில்:எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?':'If Yes: Frequency of return?');
+  setTxt('qSHGMemberText',isTa?'நீங்கள் சுய உதவி குழு (SHG) உறுப்பினரா?':'Are you a member of a Self-Help Group (SHG)?');
+  setTxt('qSHGNameText',t.c.shgName); setTxt('qSHGMeetFreqText',t.c.meetFreq);
+  setTxt('qSHGSavesText',t.c.shgSaves); setTxt('qSHGLoanText',t.c.shgLoan);
+  setTxt('qSHGLoanPurposeText',isTa?'ஆமெனில்: கடன் வாங்கியதன் நோக்கம்?':'If Yes: Purpose of Loan?');
+  setTxt('matD1Row',isTa?'கல்வி நிலை':'Schooling Status');
+  setTxt('matD1Male',t.d.male); setTxt('matD1Female',t.d.female);
   setTxt('lblEnrolled',t.d.enrolled); setTxt('lblDropout',t.d.dropout); setTxt('lblNeverEnrolled',t.d.neverEnrolled);
-  setTxt('qSchoolMatrixText',isTa?'கல்வி நிலை (மேட்ரிக்ஸ்)':'Schooling Status (Matrix – Male and Female)');
+  setTxt('qSchoolMatrixText',isTa?'கல்வி நிலை (மேட்ரிக்ஸ் – ஆண் மற்றும் பெண்)':'Schooling Status (Matrix – Male and Female)');
   setTxt('qSchoolTypeText',isTa?'(சேர்ந்திருந்தால்) பள்ளி வகை':'(If Enrolled) Type of School');
   setTxt('qDropoutReasonText',isTa?'(படிப்பை விட்டால்) விட்ட காரணம்':'(If Dropout) Reason for Leaving');
-  setTxt('qTravelSchoolText',t.d.travelSchool); setTxt('lblTravelMode',isTa?'பயண முறை:':'Mode of Travel:');
+  setTxt('qTravelSchoolText',t.d.travelSchool);
+  setTxt('lblTravelMode',isTa?'பயண முறை:':'Mode of Travel:');
   setTxt('lblTravelDistance',isTa?'பள்ளி தூரம் (கி.மீ):':'Distance to School (km):');
   setTxt('qTuitionText',t.d.tuition); setTxt('qLearningText',t.d.learning);
   setTxt('qSmartphoneText',t.d.smartphone); setTxt('qInternetText',t.d.internet);
   setTxt('qWaterSourceText',t.e.waterSource); setTxt('qWaterTreatmentText',t.e.waterTreatment);
-  setTxt('qHasToiletText',t.e.hasToilet); setTxt('qToiletUsableText',isTa?'ஆமெனில்: தற்போது பயன்படுத்த முடிகிறதா?':'If Yes: Is it currently usable?');
+  setTxt('qHasToiletText',t.e.hasToilet);
+  setTxt('qToiletUsableText',isTa?'ஆமெனில்: தற்போது பயன்படுத்த முடிகிறதா?':'If Yes: Is it currently usable (Clean/Water available)?');
   setTxt('qToiletUsersText',isTa?'ஆமெனில்: யார் பயன்படுத்துகிறார்கள்?':'If Yes: Who uses it?');
   setTxt('qMenstrualMaterialText',t.e.menstrualMaterial); setTxt('qMenstrualDisposalText',t.e.menstrualDisposal);
   setTxt('qGreenVegText',t.e.greenVeg); setTxt('qMilkFreqText',t.e.milkFreq);
-  setTxt('qNCDMatrixText',isTa?'மருத்துவர் குடும்பத்தில் யாருக்கும் இந்த நோய்கள் இருப்பதாக சொன்னார்களா?':'Has a doctor told anyone in the family they have:');
-  setTxt('ncdCondHeader',isTa?'உடல்நல நிலை':'Health Condition'); setTxt('ncdMaleHeader',t.d.male); setTxt('ncdFemaleHeader',t.d.female);
+  setTxt('qNCDMatrixText',isTa?'மருத்துவர் குடும்பத்தில் யாருக்கும் இந்த நோய்கள் இருப்பதாக சொன்னார்களா? (ஆண்/பெண் தனியாக)':'Has a doctor told anyone in the family they have: (Number of people for Male and Female separately)');
+  setTxt('ncdCondHeader',isTa?'உடல்நல நிலை':'Health Condition');
+  setTxt('ncdMaleHeader',t.d.male); setTxt('ncdFemaleHeader',t.d.female);
   setTxt('lblBP',t.e.bp); setTxt('lblDiabetes',t.e.diabetes);
   setTxt('qWasteSegText',t.f.segregation); setTxt('qWetWasteText',t.f.wetWaste); setTxt('qDryWasteText',t.f.dryWaste);
-  setTxt('qWasteCollectorText',isTa?'தூய்மைக்காவலர் உங்கள் வீட்டிற்கு வருகிறார்களா?':'Does the waste collector come to your door?');
-  setTxt('qOwnsLandText',t.g.ownsLand); setTxt('qLandAcresText',isTa?'ஆமெனில்: எத்தனை ஏக்கர்?':'If Yes: How many Acres?');
-  setTxt('qMilchAnimalsText',t.g.milchAnimals); setTxt('qMilchCountText',isTa?'ஆமெனில்: மொத்த எண்ணிக்கை':'If Yes: Total Count');
-  setTxt('qMilkYieldText',isTa?'ஆமெனில்: தினசரி பால் அளவு (லிட்டர்)':'If Yes: Daily Milk Yield (Liters)');
+  setTxt('qWasteCollectorText',isTa?'தூய்மைக்காவலர் உங்கள் வீட்டிற்கு வருகிறார்களா?':'Does the waste collector (Thooimaikavalar) come to your door?');
+  setTxt('qOwnsLandText',t.g.ownsLand);
+  setTxt('qLandAcresText',isTa?'ஆமெனில்: எத்தனை ஏக்கர்?':'If Yes: How many Acres?');
+  setTxt('qMilchAnimalsText',t.g.milchAnimals);
+  setTxt('qMilchCountText',isTa?'ஆமெனில்: மொத்த எண்ணிக்கை':'If Yes: Total Count of Milch Animals');
+  setTxt('qMilkYieldText',isTa?'ஆமெனில்: தினசரி பால் மொத்த அளவு (லிட்டர்)':'If Yes: Daily Milk Yield (Total Liters)');
   setTxt('qFodderText',t.g.fodder); setTxt('qCropWaterText',t.g.cropWater);
   setTxt('submitBtn',isTa?'✅ கணக்கெடுப்பை சமர்ப்பிக்கவும்':'✅ Submit Survey');
 
+  // Set data-speak on audio buttons
   (function(){
-    function ds(id,txt){var b=document.getElementById(id);if(b&&txt)b.dataset.speak=txt;}
-    ds('btn-audio-village',T[lang].q.villageName); ds('btn-audio-name',T[lang].a.name);
-    ds('btn-audio-caste',T[lang].a.caste); ds('btn-audio-house',T[lang].a.houseType);
-    ds('btn-audio-family',T[lang].a.familySize); ds('btn-audio-hasaadhar',T[lang].a.hasAadhar);
-    ds('btn-audio-aadhar',T[lang].a.aadharNum); ds('btn-audio-income',T[lang].b.primaryIncome);
-    ds('btn-audio-monthlyincome',T[lang].b.monthlyIncome); ds('btn-audio-ration',T[lang].b.rationCard);
-    ds('btn-audio-loans',T[lang].b.hasLoans); ds('btn-audio-loansource',T[lang].b.loanSource);
-    ds('btn-audio-migration',T[lang].b.migration); ds('btn-audio-migfreq',T[lang].b.migrationFreq);
-    ds('btn-audio-shgmember',T[lang].b.shgMember); ds('btn-audio-shgname',T[lang].c.shgName);
-    ds('btn-audio-shgmeet',T[lang].c.meetFreq); ds('btn-audio-shgsaves',T[lang].c.shgSaves);
-    ds('btn-audio-shgloan',T[lang].c.shgLoan); ds('btn-audio-shgloanpurpose',T[lang].c.shgLoanPurpose);
-    ds('btn-audio-school',T[lang].d.schoolStatus); ds('btn-mat-male',T[lang].d.male);
-    ds('btn-mat-female',T[lang].d.female); ds('btn-mat-enrolled',T[lang].d.enrolled);
-    ds('btn-mat-dropout',T[lang].d.dropout); ds('btn-mat-never',T[lang].d.neverEnrolled);
-    ds('btn-audio-schooltype',T[lang].d.schoolType); ds('btn-audio-dropoutreason',T[lang].d.dropoutReason);
-    ds('btn-audio-travelschool',T[lang].d.travelSchool); ds('btn-audio-tuition',T[lang].d.tuition);
-    ds('btn-audio-learning',T[lang].d.learning); ds('btn-audio-smartphone',T[lang].d.smartphone);
-    ds('btn-audio-internet',T[lang].d.internet); ds('btn-audio-watersource',T[lang].e.waterSource);
-    ds('btn-audio-watertreat',T[lang].e.waterTreatment); ds('btn-audio-toilet',T[lang].e.hasToilet);
-    ds('btn-audio-toiletusable',T[lang].e.toiletUsable); ds('btn-audio-toiletusers',T[lang].e.toiletUsers);
-    ds('btn-audio-menstrual',T[lang].e.menstrualMaterial); ds('btn-audio-menstrualdisposal',T[lang].e.menstrualDisposal);
-    ds('btn-audio-greenveg',T[lang].e.greenVeg); ds('btn-audio-milkfreq',T[lang].e.milkFreq);
-    ds('btn-audio-ncd',T[lang].e.ncdMatrix); ds('btn-audio-wasteseg',T[lang].f.segregation);
-    ds('btn-audio-wetwaste',T[lang].f.wetWaste); ds('btn-audio-drywaste',T[lang].f.dryWaste);
-    ds('btn-audio-wastecollect',T[lang].f.collector); ds('btn-audio-land',T[lang].g.ownsLand);
-    ds('btn-audio-acres',T[lang].g.landAcres); ds('btn-audio-milch',T[lang].g.milchAnimals);
-    ds('btn-audio-milchcount',T[lang].g.milchCount); ds('btn-audio-milkyield',T[lang].g.milkYield);
-    ds('btn-audio-fodder',T[lang].g.fodder); ds('btn-audio-cropwater',T[lang].g.cropWater);
+    function ds(id,text){var b=document.getElementById(id);if(b&&text)b.dataset.speak=text;}
+    ds('btn-audio-village',T[lang].q.villageName||''); ds('btn-audio-name',T[lang].a.name||'');
+    ds('btn-audio-caste',T[lang].a.caste||''); ds('btn-audio-house',T[lang].a.houseType||'');
+    ds('btn-audio-family',T[lang].a.familySize||''); ds('btn-audio-hasaadhar',T[lang].a.hasAadhar||'');
+    ds('btn-audio-aadhar',T[lang].a.aadharNum||''); ds('btn-audio-income',T[lang].b.primaryIncome||'');
+    ds('btn-audio-monthlyincome',T[lang].b.monthlyIncome||''); ds('btn-audio-ration',T[lang].b.rationCard||'');
+    ds('btn-audio-loans',T[lang].b.hasLoans||''); ds('btn-audio-loansource',T[lang].b.loanSource||'');
+    ds('btn-audio-migration',T[lang].b.migration||''); ds('btn-audio-migfreq',T[lang].b.migrationFreq||'');
+    ds('btn-audio-shgmember',T[lang].b.shgMember||''); ds('btn-audio-shgname',T[lang].c.shgName||'');
+    ds('btn-audio-shgmeet',T[lang].c.meetFreq||''); ds('btn-audio-shgsaves',T[lang].c.shgSaves||'');
+    ds('btn-audio-shgloan',T[lang].c.shgLoan||''); ds('btn-audio-shgloanpurpose',T[lang].c.shgLoanPurpose||'');
+    ds('btn-audio-school',T[lang].d.schoolStatus||''); ds('btn-mat-male',T[lang].d.male||'');
+    ds('btn-mat-female',T[lang].d.female||''); ds('btn-mat-enrolled',T[lang].d.enrolled||'');
+    ds('btn-mat-dropout',T[lang].d.dropout||''); ds('btn-mat-never',T[lang].d.neverEnrolled||'');
+    ds('btn-audio-schooltype',T[lang].d.schoolType||''); ds('btn-audio-dropoutreason',T[lang].d.dropoutReason||'');
+    ds('btn-audio-travelschool',T[lang].d.travelSchool||''); ds('btn-audio-tuition',T[lang].d.tuition||'');
+    ds('btn-audio-learning',T[lang].d.learning||''); ds('btn-audio-smartphone',T[lang].d.smartphone||'');
+    ds('btn-audio-internet',T[lang].d.internet||''); ds('btn-audio-watersource',T[lang].e.waterSource||'');
+    ds('btn-audio-watertreat',T[lang].e.waterTreatment||''); ds('btn-audio-toilet',T[lang].e.hasToilet||'');
+    ds('btn-audio-toiletusable',T[lang].e.toiletUsable||''); ds('btn-audio-toiletusers',T[lang].e.toiletUsers||'');
+    ds('btn-audio-menstrual',T[lang].e.menstrualMaterial||''); ds('btn-audio-menstrualdisposal',T[lang].e.menstrualDisposal||'');
+    ds('btn-audio-greenveg',T[lang].e.greenVeg||''); ds('btn-audio-milkfreq',T[lang].e.milkFreq||'');
+    ds('btn-audio-ncd',T[lang].e.ncdMatrix||''); ds('btn-audio-wasteseg',T[lang].f.segregation||'');
+    ds('btn-audio-wetwaste',T[lang].f.wetWaste||''); ds('btn-audio-drywaste',T[lang].f.dryWaste||'');
+    ds('btn-audio-wastecollect',T[lang].f.collector||''); ds('btn-audio-land',T[lang].g.ownsLand||'');
+    ds('btn-audio-acres',T[lang].g.landAcres||''); ds('btn-audio-milch',T[lang].g.milchAnimals||'');
+    ds('btn-audio-milchcount',T[lang].g.milchCount||''); ds('btn-audio-milkyield',T[lang].g.milkYield||'');
+    ds('btn-audio-fodder',T[lang].g.fodder||''); ds('btn-audio-cropwater',T[lang].g.cropWater||'');
   })();
 }
 
-function renderAllOptions(){
+function setTxt(id,text){var el=document.getElementById(id);if(el)el.textContent=text;}
+
+// ================================================================
+//  RENDER OPTIONS
+// ================================================================
+function renderAllOptions() {
   var t=T[lang]; var en=T['en-IN'];
   renderRadio('village',t.villageOpts,t.villageOpts,false,'',en.villageOpts);
   renderRadio('caste',t.aOpts.caste,t.aOpts.caste,false,'',en.aOpts.caste);
@@ -497,16 +1052,18 @@ function renderAllOptions(){
 }
 
 function renderRadio(id,labels,audioLabels,isMulti,onChangeFn,values){
-  var container=document.getElementById('opts-'+id);if(!container)return;
-  var type=isMulti?'checkbox':'radio',html='';
-  for(var i=0;i<labels.length;i++){
-    var label=labels[i],val=(values&&values[i])?values[i]:label;
-    var au=(audioLabels[i]||label).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  var container=document.getElementById('opts-'+id); if(!container)return;
+  var type=isMulti?'checkbox':'radio'; var html='';
+  for(var idx=0;idx<labels.length;idx++){
+    var label=labels[idx];
+    var val=(values&&values[idx])?values[idx]:label;
+    var au=(audioLabels[idx]||label).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
     var chg=onChangeFn?' onchange="'+onChangeFn+'()"':'';
     html+='<label class="opt-item" onclick="selectOpt(this,\''+id+'\',\''+type+'\')">'+
       '<input type="'+type+'" name="'+id+'" value="'+val.replace(/"/g,'&quot;')+'"'+chg+' onchange="updateOptStyle(this)">'+
       '<span class="opt-label">'+label+'</span>'+
-      '<button class="opt-audio" onclick="event.stopPropagation();event.preventDefault();speakText(\''+au+'\',\'\')">🔊</button></label>';
+      '<button class="opt-audio" onclick="event.stopPropagation();event.preventDefault();speakText(\''+au+'\',\'\')">🔊</button>'+
+      '</label>';
   }
   container.innerHTML=html;
 }
@@ -522,18 +1079,27 @@ function selectOpt(labelEl,id,type){
     if(inp){inp.checked=!inp.checked;labelEl.classList[inp.checked?'add':'remove']('selected');inp.dispatchEvent(new Event('change',{bubbles:true}));}
   }
 }
-function updateOptStyle(input){var label=input.closest('.opt-item');if(label)label.classList[input.checked?'add':'remove']('selected');}
-function getSelected(id,isMulti){var inputs=document.querySelectorAll('input[name="'+id+'"]:checked'),vals=[];inputs.forEach(function(i){vals.push(i.value);});return isMulti?vals.join(', '):(vals[0]||'');}
 
+function updateOptStyle(input){var label=input.closest('.opt-item');if(label)label.classList[input.checked?'add':'remove']('selected');}
+
+function getSelected(id,isMulti){
+  var inputs=document.querySelectorAll('input[name="'+id+'"]:checked');
+  var vals=[]; inputs.forEach(function(i){vals.push(i.value);});
+  return isMulti?vals.join(', '):(vals[0]||'');
+}
+
+// ================================================================
+//  CONDITIONAL LOGIC
+// ================================================================
 function checkAadhar(){showHide('qAadharNum',getSelected('hasaadhar',false)==='Yes');}
 function checkLoans(){showHide('qLoanSource',getSelected('loans',false)==='Yes');}
 function checkMigration(){showHide('qMigrationFreq',getSelected('migration',false)==='Yes');}
 function checkSHG(){showHide('sectionC',getSelected('shgmember',false)==='Yes');}
 function checkSHGLoan(){showHide('qSHGLoanPurpose',getSelected('shgloan',false)==='Yes');}
 function checkSchoolConditions(){
-  var hasE=parseInt(document.getElementById('enrolledMale').value||'0')>0||parseInt(document.getElementById('enrolledFemale').value||'0')>0;
-  var hasD=parseInt(document.getElementById('dropoutMale').value||'0')>0||parseInt(document.getElementById('dropoutFemale').value||'0')>0;
-  showHide('qSchoolType',hasE);showHide('qDropoutReason',hasD);
+  var hasEnrolled=parseInt(document.getElementById('enrolledMale').value||'0')>0||parseInt(document.getElementById('enrolledFemale').value||'0')>0;
+  var hasDropout=parseInt(document.getElementById('dropoutMale').value||'0')>0||parseInt(document.getElementById('dropoutFemale').value||'0')>0;
+  showHide('qSchoolType',hasEnrolled); showHide('qDropoutReason',hasDropout);
 }
 function checkToilet(){var has=getSelected('toilet',false)==='Yes';showHide('qToiletUsable',has);if(!has)showHide('qToiletUsers',false);}
 function checkToiletUsable(){showHide('qToiletUsers',getSelected('toiletusable',false)==='Yes');}
@@ -543,203 +1109,452 @@ function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getE
 function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
 
 // ================================================================
-//  ✅ TTS ENGINE — ResponsiveVoice (instant, free, all platforms)
-//  Tamil Female voice plays immediately on click, no delay, no CORS
+//  TTS ENGINE — Google Translate TTS (proper Tamil voice)
+//  Uses Google Translate audio API for Tamil (ta) and English (en)
+//  Falls back to browser speechSynthesis if audio fails
 // ================================================================
+var currentAudio = null, ttsActive = false, activeBtnId = null;
+var _consentChunks = [], _consentChunkIdx = 0;
 
-function speakText(text, btnId){
-  if(!text||!text.trim()) return;
-  if(ttsActive && activeBtnId===btnId){ stopAllAudio(); return; }
-  stopAllAudio();
-  ttsActive=true; activeBtnId=btnId;
-  setBtnState(btnId, true, 'playing');
+// Split long text into chunks ≤ 180 chars at sentence/comma boundaries
+function splitIntoChunks(text, maxLen) {
+  maxLen = maxLen || 180;
+  var sentences = text.split(/(?<=[.!?।,\n])\s*/u);
+  var chunks = [], chunk = '';
+  for (var i = 0; i < sentences.length; i++) {
+    var s = sentences[i].trim();
+    if (!s) continue;
+    if ((chunk + ' ' + s).trim().length <= maxLen) {
+      chunk = (chunk + ' ' + s).trim();
+    } else {
+      if (chunk) chunks.push(chunk);
+      // If single sentence itself too long, split by word
+      if (s.length > maxLen) {
+        var words = s.split(' '), sub = '';
+        for (var w = 0; w < words.length; w++) {
+          if ((sub + ' ' + words[w]).trim().length <= maxLen) {
+            sub = (sub + ' ' + words[w]).trim();
+          } else {
+            if (sub) chunks.push(sub);
+            sub = words[w];
+          }
+        }
+        if (sub) chunks.push(sub);
+        chunk = '';
+      } else {
+        chunk = s;
+      }
+    }
+  }
+  if (chunk) chunks.push(chunk);
+  return chunks;
+}
 
-  var voice = (lang==='ta-IN') ? 'Tamil Female' : 'UK English Female';
+// Build Google Translate TTS URL
+function gTTSUrl(text, tl) {
+  var safe = text.substring(0, 200);
+  return 'https://translate.google.com/translate_tts'
+    + '?ie=UTF-8'
+    + '&q=' + encodeURIComponent(safe)
+    + '&tl=' + encodeURIComponent(tl)
+    + '&client=tw-ob'
+    + '&ttsspeed=0.9';
+}
 
-  if(typeof responsiveVoice !== 'undefined'){
-    responsiveVoice.speak(text, voice, {
-      rate: 0.9, pitch: 1, volume: 1,
-      onend: function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); },
-      onerror: function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); }
+// Detect if Tamil language is selected
+function getTTSLang() {
+  return (lang === 'ta-IN') ? 'ta' : 'en';
+}
+
+// Play a single chunk via Google Translate TTS audio
+function playChunk(text, tl, btnId, onDone, onFail) {
+  stopCurrentAudio();
+  var url = gTTSUrl(text, tl);
+  var audio = new Audio();
+  audio.crossOrigin = 'anonymous';
+  currentAudio = audio;
+
+  audio.oncanplaythrough = function() {
+    ttsActive = true;
+    setBtnState(btnId, true, 'playing');
+    audio.play().catch(function(e) {
+      ttsActive = false;
+      currentAudio = null;
+      if (onFail) onFail(e);
     });
-  } else {
-    // Fallback: Web Speech API
-    if(!('speechSynthesis' in window)){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); return; }
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = (lang==='ta-IN') ? 'ta-IN' : 'en-IN';
-    u.rate=0.88; u.pitch=1; u.volume=1;
-    u.onend=function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); };
-    u.onerror=function(){ ttsActive=false; activeBtnId=null; setBtnState(btnId,false); };
-    window.speechSynthesis.speak(u);
+  };
+
+  audio.onended = function() {
+    ttsActive = false;
+    currentAudio = null;
+    if (onDone) onDone();
+  };
+
+  audio.onerror = function() {
+    ttsActive = false;
+    currentAudio = null;
+    if (onFail) onFail();
+  };
+
+  // Set src AFTER attaching events
+  audio.src = url;
+  audio.load();
+}
+
+// Fallback: browser speechSynthesis
+function speakWithBrowser(text, btnId) {
+  if (!('speechSynthesis' in window)) { showTextPopup(text); setBtnState(btnId, false); return; }
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = (lang === 'ta-IN') ? 'ta-IN' : 'en-IN';
+  u.rate = 0.82; u.volume = 1;
+  u.onstart = function() { ttsActive = true; setBtnState(btnId, true, 'playing'); };
+  u.onend   = function() { ttsActive = false; setBtnState(btnId, false); };
+  u.onerror = function() { ttsActive = false; setBtnState(btnId, false); showTextPopup(text); };
+  window.speechSynthesis.speak(u);
+}
+
+// Main speakText — plays chunks sequentially via Google TTS
+function speakText(text, btnId) {
+  if (!text) return;
+  if (ttsActive) { stopAllAudio(); if (activeBtnId === btnId) return; }
+  activeBtnId = btnId;
+  setBtnState(btnId, true, 'loading');
+
+  var tl = getTTSLang();
+  var chunks = splitIntoChunks(text, 180);
+  if (!chunks.length) { setBtnState(btnId, false); return; }
+
+  var idx = 0;
+
+  function playNext() {
+    if (!ttsActive && idx > 0) return; // stopped by user
+    if (activeBtnId !== btnId && idx > 0) return; // another button took over
+    if (idx >= chunks.length) { setBtnState(btnId, false); ttsActive = false; return; }
+
+    var chunk = chunks[idx];
+    idx++;
+
+    playChunk(chunk, tl, btnId,
+      function() { playNext(); },       // onDone → play next chunk
+      function() {                       // onFail → try browser fallback
+        speakWithBrowser(chunk, btnId);
+      }
+    );
+  }
+
+  playNext();
+}
+
+// Stop only the Audio element (not speechSynthesis cancel)
+function stopCurrentAudio() {
+  if (currentAudio) {
+    try { currentAudio.pause(); currentAudio.src = ''; } catch(e) {}
+    currentAudio = null;
   }
 }
 
-function stopAllAudio(){
-  if('speechSynthesis' in window){try{window.speechSynthesis.cancel();}catch(e){}}
-  if(_curAudio){try{_curAudio.pause();_curAudio.src='';}catch(e){}}_curAudio=null;
-  ttsActive=false;
-  if(activeBtnId)setBtnState(activeBtnId,false);
-  activeBtnId=null;
-  var lbl=document.getElementById('consentAudioLabel');
-  if(lbl)lbl.textContent=(lang==='ta-IN')?'சம்மதத்தை கேளுங்கள்':'Listen to Consent';
-  var cb=document.getElementById('btn-consent-audio');
-  if(cb)cb.classList.remove('playing');
+function stopAllAudio() {
+  stopCurrentAudio();
+  if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch(e) {} }
+  ttsActive = false;
+  _consentChunks = []; _consentChunkIdx = 0;
+  if (activeBtnId) setBtnState(activeBtnId, false);
+  activeBtnId = null;
+  var lbl = document.getElementById('consentAudioLabel');
+  if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
 }
 
-function setBtnState(btnId,on,state){
-  if(!btnId)return;
-  var b=document.getElementById(btnId);if(!b)return;
-  b.classList.remove('loading','playing');
-  if(!on){b.textContent='🔊';return;}
-  if(state==='loading'){b.textContent='⏳';b.classList.add('loading');}
-  else{b.textContent='⏹️';b.classList.add('playing');}
+function setBtnState(btnId, on, state) {
+  if (!btnId) return;
+  var b = document.getElementById(btnId); if (!b) return;
+  b.classList.remove('loading', 'playing');
+  if (!on) { b.textContent = '🔊'; return; }
+  if (state === 'loading') { b.textContent = '⏳'; b.classList.add('loading'); }
+  else { b.textContent = '⏹️'; b.classList.add('playing'); }
 }
 
-function toggleConsentAudio(){
-  if(ttsActive&&activeBtnId==='btn-consent-audio'){stopAllAudio();return;}
-  speakText(T[lang].consent.text,'btn-consent-audio');
+// Consent audio — plays full consent text in chunks
+function toggleConsentAudio() {
+  if (ttsActive && activeBtnId === 'btn-consent-audio') {
+    stopAllAudio(); return;
+  }
+  var fullText = T[lang].consent.text;
+  speakText(fullText, 'btn-consent-audio');
+}
+
+function showTextPopup(text) {
+  var p = document.getElementById('tts-popup'); if (!p) return;
+  p.textContent = '🔊 ' + text.substring(0, 200) + (text.length > 200 ? '…' : '');
+  p.style.display = 'block'; clearTimeout(p._t);
+  p._t = setTimeout(function() { p.style.display = 'none'; }, 6000);
 }
 
 // ================================================================
-//  MICROPHONE
+//  MICROPHONE (Voice Input)
 // ================================================================
-function startMic(field){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){alert('Voice input is only supported in Google Chrome or Edge.');return;}
-  if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'){alert('Voice input requires a secure (HTTPS) connection.');return;}
-  var btn=document.getElementById('mic-'+field);
-  if(isRec){if(recog){try{recog.stop();}catch(e){}}isRec=false;if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';}curMicBtn=null;curMicField=null;return;}
-  recog=new SR();recog.lang=lang;recog.interimResults=false;recog.maxAlternatives=1;recog.continuous=false;
-  recog.onstart=function(){isRec=true;curMicBtn=btn;curMicField=field;if(btn){btn.classList.add('recording');btn.textContent='⏹️';}};
-  recog.onresult=function(e){
-    var transcript=e.results[0][0].transcript.trim();
-    var numFields=['adultMales','adultFemales','children','totalMembers','aadhar','income','schoolDistance','landAcres','milchCount','milkYield'];
-    var isNum=numFields.indexOf(field)!==-1,finalVal=transcript;
-    if(isNum){var num=parseInt(transcript.replace(/[,\s]/g,''),10);finalVal=(!isNaN(num)&&num>=0)?num:transcript;}
-    var el=document.getElementById(field+'Audio');if(el)el.value=finalVal;
-    if(isNum&&typeof finalVal==='number'){var t2=document.getElementById(field+'Text');if(t2)t2.value=finalVal;}
+function startMic(field) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert('Voice input is only supported in Google Chrome or Edge. Please use one of those browsers.');
+    return;
+  }
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    alert('Voice input requires a secure (HTTPS) connection. Please open this page over HTTPS.');
+    return;
+  }
+  const btn = document.getElementById('mic-' + field);
+  if (isRec) {
+    if (recog) { try { recog.stop(); } catch(e) {} }
+    isRec = false;
+    if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
+    curMicBtn = null; curMicField = null;
+    return;
+  }
+  recog = new SR();
+  recog.lang = lang; recog.interimResults = false; recog.maxAlternatives = 1; recog.continuous = false;
+  recog.onstart = function () {
+    isRec = true; curMicBtn = btn; curMicField = field;
+    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹️'; }
   };
-  recog.onerror=function(e){
-    isRec=false;if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';}curMicBtn=null;curMicField=null;
-    var msg='';
-    switch(e.error){
-      case 'not-allowed':case 'permission-denied':msg='Microphone permission denied.\n\nFix: Click 🔒 in address bar → Set Microphone to Allow → Reload.';break;
-      case 'no-speech':msg='No speech detected. Please try again.';break;
-      case 'network':msg='Network error. Check your internet connection.';break;
-      default:msg='Speech error: '+e.error;
+  recog.onresult = function (e) {
+    var transcript = e.results[0][0].transcript.trim();
+    var numberFields = ['adultMales','adultFemales','children','totalMembers','aadhar','income','schoolDistance','landAcres','milchCount','milkYield'];
+    var isNumericField = numberFields.indexOf(field) !== -1;
+    var finalVal = transcript;
+    if (isNumericField) {
+      var cleaned = transcript.replace(/[,\s]/g, '');
+      var num = parseInt(cleaned, 10);
+      if (isNaN(num)) {
+        var wordToNum = {'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19,'twenty':20,'thirty':30,'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,'hundred':100,'thousand':1000};
+        var words = transcript.toLowerCase().split(/\s+/);
+        var total = 0, current = 0;
+        for (var wi = 0; wi < words.length; wi++) {
+          var w = words[wi];
+          if (wordToNum[w] !== undefined) {
+            if (w === 'hundred') { current = (current || 1) * 100; }
+            else if (w === 'thousand') { total += (current || 1) * 1000; current = 0; }
+            else { current += wordToNum[w]; }
+          }
+        }
+        num = total + current;
+      }
+      finalVal = (!isNaN(num) && num >= 0) ? num : transcript;
     }
-    if(msg)alert(msg);
+    var audioEl = document.getElementById(field + 'Audio');
+    if (audioEl) audioEl.value = finalVal;
+    if (isNumericField && typeof finalVal === 'number') {
+      var textEl = document.getElementById(field + 'Text');
+      if (textEl) textEl.value = finalVal;
+    }
   };
-  recog.onend=function(){isRec=false;if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';}curMicBtn=null;curMicField=null;recog=null;};
-  try{recog.start();}catch(err){isRec=false;if(btn){btn.classList.remove('recording');btn.textContent='🎤';}alert('Could not start microphone: '+err.message);}
+  recog.onerror = function (e) {
+    isRec = false;
+    if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
+    curMicBtn = null; curMicField = null;
+    var msg = '';
+    switch (e.error) {
+      case 'not-allowed': case 'permission-denied':
+        msg = 'Microphone permission was denied.\n\nTo fix:\n1. Click the 🔒 lock icon in the address bar.\n2. Set Microphone to "Allow".\n3. Reload the page.'; break;
+      case 'no-speech': msg = 'No speech detected. Please try speaking again.'; break;
+      case 'network': msg = 'A network error occurred. Please check your internet connection.'; break;
+      case 'audio-capture': msg = 'No microphone found. Please connect a microphone and try again.'; break;
+      default: msg = 'Speech recognition error: ' + e.error;
+    }
+    if (msg) alert(msg);
+  };
+  recog.onend = function () {
+    isRec = false;
+    if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
+    curMicBtn = null; curMicField = null; recog = null;
+  };
+  try { recog.start(); } catch (err) {
+    isRec = false;
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤'; }
+    alert('Could not start microphone: ' + err.message);
+  }
 }
 
 // ================================================================
-//  SUBMIT
+//  SUBMIT FORM
 // ================================================================
-function submitForm(){
+function submitForm() {
   stopAllAudio();
-  if(formSubmitted){showStatus(lang==='ta-IN'?'✅ கணக்கெடுப்பு ஏற்கனவே சமர்ப்பிக்கப்பட்டது.':'✅ Survey already submitted.','success');return;}
-  var isTa=(lang==='ta-IN');
-  function req(id,en,ta){var el=document.getElementById(id);if(!el)return true;var v=el.value!==undefined?el.value.toString().trim():'';if(!v){showStatus(isTa?'❌ '+ta:'❌ '+en,'error');el.focus();return false;}return true;}
-  function reqS(name,en,ta){if(!document.querySelector('input[name="'+name+'"]:checked')){showStatus(isTa?'❌ '+ta:'❌ '+en,'error');return false;}return true;}
-  function reqE(id1,id2,en,ta){var v1=(document.getElementById(id1)||{}).value||'',v2=(document.getElementById(id2)||{}).value||'';if(!v1.trim()&&!v2.trim()){showStatus(isTa?'❌ '+ta:'❌ '+en,'error');return false;}return true;}
+  if (formSubmitted) {
+    showStatus(lang==='ta-IN'?'✅ கணக்கெடுப்பு ஏற்கனவே சமர்ப்பிக்கப்பட்டது.':'✅ Survey already submitted.','success');
+    return;
+  }
+  var isTa = (lang === 'ta-IN');
+  function req(id,msgEn,msgTa){var el=document.getElementById(id);if(!el)return true;var v=el.value!==undefined?el.value.toString().trim():'';if(!v){showStatus(isTa?'❌ '+msgTa:'❌ '+msgEn,'error');el.focus();return false;}return true;}
+  function reqSelect(name,msgEn,msgTa){if(!document.querySelector('input[name="'+name+'"]:checked')){showStatus(isTa?'❌ '+msgTa:'❌ '+msgEn,'error');return false;}return true;}
+  function reqEither(id1,id2,msgEn,msgTa){var v1=(document.getElementById(id1)||{}).value||'';var v2=(document.getElementById(id2)||{}).value||'';if(!v1.trim()&&!v2.trim()){showStatus(isTa?'❌ '+msgTa:'❌ '+msgEn,'error');return false;}return true;}
 
-  if(!reqS('village','Please select Village Name.','கிராமத்தை தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqE('nameText','nameAudio','Please enter Respondent Name.','பதிலளிப்பவர் பெயரை உள்ளிடவும்.'))return;
-  if(!reqS('caste','Please select Social Category.','சமூக வகையை தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('house','Please select Type of House.','வீட்டின் வகையை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('village','Please select Village Name.','கிராமத்தை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqEither('nameText','nameAudio','Please enter Respondent Name.','பதிலளிப்பவர் பெயரை உள்ளிடவும்.'))return;
+  if(!reqSelect('caste','Please select Social Category (Caste).','சமூக வகையை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('house','Please select Type of House.','வீட்டின் வகையை தேர்ந்தெடுக்கவும்.'))return;
   if(!req('adultMales','Please enter Adult Males count.','வயதுக்கு மேற்பட்ட ஆண்கள் எண்ணிக்கை உள்ளிடவும்.'))return;
   if(!req('adultFemales','Please enter Adult Females count.','வயதுக்கு மேற்பட்ட பெண்கள் எண்ணிக்கை உள்ளிடவும்.'))return;
   if(!req('children','Please enter Children count.','குழந்தைகள் எண்ணிக்கை உள்ளிடவும்.'))return;
-  if(!reqS('hasaadhar','Please answer: Do you have Aadhaar?','ஆதார் அட்டை இருக்கிறதா என்று தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('income','Please select Primary Source of Income.','வருமான ஆதாரத்தை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('hasaadhar','Please answer: Do you have Aadhaar card?','ஆதார் அட்டை இருக்கிறதா என்று தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('income','Please select Primary Source of Income.','வருமான ஆதாரத்தை தேர்ந்தெடுக்கவும்.'))return;
   if(!req('incomeText','Please enter Monthly Income.','மாதாந்திர வருமானம் உள்ளிடவும்.'))return;
-  if(!reqS('ration','Please select Ration Card Type.','ரேஷன் அட்டை வகையை தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('loans','Please answer: Outstanding loans?','கடன் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('migration','Please answer: Family migration?','குடும்ப இடம்பெயர்வு பதில் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('shgmember','Please answer: SHG member?','சுய உதவி குழு உறுப்பினர் பதில் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('watersource','Please select Water Source.','குடிநீர் மூலாதாரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('watertreat','Please answer: Water treatment?','குடிநீர் சுத்திகரிப்பு பதில் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('toilet','Please answer: Toilet?','கழிவறை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('wasteseg','Please answer: Waste segregation?','கழிவு பிரிப்பு பதில் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('land','Please answer: Own agricultural land?','விவசாய நிலம் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqS('milch','Please answer: Own Milch Animals?','கால்நடை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('ration','Please select Ration Card Type.','ரேஷன் அட்டை வகையை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('loans','Please answer: Do you have outstanding loans?','கடன் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('migration','Please answer: Family member living outside for work?','குடும்ப இடம்பெயர்வு பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('shgmember','Please answer: Are you an SHG member?','சுய உதவி குழு உறுப்பினர் பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('watersource','Please select Water Source.','குடிநீர் மூலாதாரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('watertreat','Please answer: Do you treat drinking water?','குடிநீர் சுத்திகரிப்பு பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('toilet','Please answer: Do you have a toilet?','கழிவறை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('wasteseg','Please answer: Do you segregate waste?','கழிவு பிரிப்பு பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('land','Please answer: Do you own agricultural land?','விவசாய நிலம் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('milch','Please answer: Do you own Milch Animals?','கால்நடை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
 
   showProcessingOverlay(true);
-  window._submitNameT=(document.getElementById('nameText')||{}).value||'';
-  window._submitNameA=(document.getElementById('nameAudio')||{}).value||'';
-  document.getElementById('submitBtn').disabled=true;
+  window._submitNameT = (document.getElementById('nameText')||{}).value||'';
+  window._submitNameA = (document.getElementById('nameAudio')||{}).value||'';
+  document.getElementById('submitBtn').disabled = true;
+  _doSubmitSave('');
+}
 
-  var d={
-    langCode:lang,gpsLat:gpsLat,gpsLng:gpsLng,
-    surveyDate:(document.getElementById('dateDisplay')||{}).textContent||'',
-    consent:'Yes',villageName:getSelected('village',false),
-    nameText:window._submitNameT,nameAudio:window._submitNameA,
-    socialCategory:getSelected('caste',false),houseType:getSelected('house',false),
-    adultMales:(document.getElementById('adultMales')||{}).value||'',
-    adultFemales:(document.getElementById('adultFemales')||{}).value||'',
-    children:(document.getElementById('children')||{}).value||'',
-    totalMembers:(document.getElementById('totalMembers')||{}).value||'',
-    hasAadhar:getSelected('hasaadhar',false),
-    aadharText:(document.getElementById('aadharText')||{}).value||'',
-    aadharAudio:(document.getElementById('aadharAudio')||{}).value||'',
-    primaryIncome:getSelected('income',false),
-    incomeText:(document.getElementById('incomeText')||{}).value||'',
-    incomeAudio:(document.getElementById('incomeAudio')||{}).value||'',
-    rationCard:getSelected('ration',false),hasLoans:getSelected('loans',false),
-    loanSource:getSelected('loansource',true),hasMigration:getSelected('migration',false),
-    migrationFreq:getSelected('migfreq',false),isSHGMember:getSelected('shgmember',false),
-    shgNameText:(document.getElementById('shgNameText')||{}).value||'',
-    shgNameAudio:(document.getElementById('shgNameAudio')||{}).value||'',
-    shgMeetFreq:getSelected('shgmeet',false),shgSaves:getSelected('shgsaves',false),
-    shgLoan:getSelected('shgloan',false),shgLoanPurpose:getSelected('shgloanpurpose',false),
-    enrolledMale:(document.getElementById('enrolledMale')||{}).value||'0',
-    enrolledFemale:(document.getElementById('enrolledFemale')||{}).value||'0',
-    dropoutMale:(document.getElementById('dropoutMale')||{}).value||'0',
-    dropoutFemale:(document.getElementById('dropoutFemale')||{}).value||'0',
-    neverMale:(document.getElementById('neverMale')||{}).value||'0',
-    neverFemale:(document.getElementById('neverFemale')||{}).value||'0',
-    schoolType:getSelected('schooltype',false),dropoutReason:getSelected('dropoutreason',false),
-    schoolTravelMode:getSelected('travelmode',false),
-    schoolDistance:(document.getElementById('schoolDistance')||{}).value||'',
-    privateTuition:getSelected('tuition',false),learningStruggle:getSelected('learning',false),
-    hasSmartphone:getSelected('smartphone',false),internetIndep:getSelected('internet',false),
-    waterSource:getSelected('watersource',false),waterTreatment:getSelected('watertreat',false),
-    hasToilet:getSelected('toilet',false),toiletUsable:getSelected('toiletusable',false),
-    toiletUsers:getSelected('toiletusers',false),menstrualMaterial:getSelected('menstrual',false),
-    menstrualDisposal:getSelected('menstrualdisposal',false),greenVegFreq:getSelected('greenveg',false),
-    milkFreq:getSelected('milkfreq',false),
-    bpMale:(document.getElementById('bpMale')||{}).value||'',
-    bpFemale:(document.getElementById('bpFemale')||{}).value||'',
-    diabetesMale:(document.getElementById('diabetesMale')||{}).value||'',
-    diabetesFemale:(document.getElementById('diabetesFemale')||{}).value||'',
-    wasteSegregation:getSelected('wasteseg',false),wetWasteDisposal:getSelected('wetwaste',false),
-    dryWasteDisposal:getSelected('drywaste',false),wasteCollector:getSelected('wastecollect',false),
-    ownsLand:getSelected('land',false),landAcres:(document.getElementById('landAcres')||{}).value||'',
-    ownsMilchAnimals:getSelected('milch',false),milchCount:(document.getElementById('milchCount')||{}).value||'',
-    milkYield:(document.getElementById('milkYield')||{}).value||'',
-    fodderShortage:getSelected('fodder',false),cropWaterShortage:getSelected('cropwater',false)
+function _doSubmitSave(photoUrl) {
+  const d = {
+    photoUrl: photoUrl||'', langCode: lang, gpsLat: gpsLat, gpsLng: gpsLng,
+    surveyDate: (document.getElementById('dateDisplay')||{}).textContent||'',
+    consent: 'Yes',
+    villageName: getSelected('village',false),
+    nameText: window._submitNameT||'', nameAudio: window._submitNameA||'',
+    socialCategory: getSelected('caste',false),
+    houseType: getSelected('house',false),
+    adultMales: (document.getElementById('adultMales')||{}).value||'',
+    adultFemales: (document.getElementById('adultFemales')||{}).value||'',
+    children: (document.getElementById('children')||{}).value||'',
+    totalMembers: (document.getElementById('totalMembers')||{}).value||'',
+    hasAadhar: getSelected('hasaadhar',false),
+    aadharText: (document.getElementById('aadharText')||{}).value||'',
+    aadharAudio: (document.getElementById('aadharAudio')||{}).value||'',
+    primaryIncome: getSelected('income',false),
+    incomeText: (document.getElementById('incomeText')||{}).value||'',
+    incomeAudio: (document.getElementById('incomeAudio')||{}).value||'',
+    rationCard: getSelected('ration',false),
+    hasLoans: getSelected('loans',false),
+    loanSource: getSelected('loansource',true),
+    hasMigration: getSelected('migration',false),
+    migrationFreq: getSelected('migfreq',false),
+    isSHGMember: getSelected('shgmember',false),
+    shgNameText: (document.getElementById('shgNameText')||{}).value||'',
+    shgNameAudio: (document.getElementById('shgNameAudio')||{}).value||'',
+    shgMeetFreq: getSelected('shgmeet',false),
+    shgSaves: getSelected('shgsaves',false),
+    shgLoan: getSelected('shgloan',false),
+    shgLoanPurpose: getSelected('shgloanpurpose',false),
+    enrolledMale: (document.getElementById('enrolledMale')||{}).value||'0',
+    enrolledFemale: (document.getElementById('enrolledFemale')||{}).value||'0',
+    dropoutMale: (document.getElementById('dropoutMale')||{}).value||'0',
+    dropoutFemale: (document.getElementById('dropoutFemale')||{}).value||'0',
+    neverMale: (document.getElementById('neverMale')||{}).value||'0',
+    neverFemale: (document.getElementById('neverFemale')||{}).value||'0',
+    schoolType: getSelected('schooltype',false),
+    dropoutReason: getSelected('dropoutreason',false),
+    schoolTravelMode: getSelected('travelmode',false),
+    schoolDistance: (document.getElementById('schoolDistance')||{}).value||'',
+    privateTuition: getSelected('tuition',false),
+    learningStruggle: getSelected('learning',false),
+    hasSmartphone: getSelected('smartphone',false),
+    internetIndep: getSelected('internet',false),
+    waterSource: getSelected('watersource',false),
+    waterTreatment: getSelected('watertreat',false),
+    hasToilet: getSelected('toilet',false),
+    toiletUsable: getSelected('toiletusable',false),
+    toiletUsers: getSelected('toiletusers',false),
+    menstrualMaterial: getSelected('menstrual',false),
+    menstrualDisposal: getSelected('menstrualdisposal',false),
+    greenVegFreq: getSelected('greenveg',false),
+    milkFreq: getSelected('milkfreq',false),
+    bpMale: (document.getElementById('bpMale')||{}).value||'',
+    bpFemale: (document.getElementById('bpFemale')||{}).value||'',
+    diabetesMale: (document.getElementById('diabetesMale')||{}).value||'',
+    diabetesFemale: (document.getElementById('diabetesFemale')||{}).value||'',
+    wasteSegregation: getSelected('wasteseg',false),
+    wetWasteDisposal: getSelected('wetwaste',false),
+    dryWasteDisposal: getSelected('drywaste',false),
+    wasteCollector: getSelected('wastecollect',false),
+    ownsLand: getSelected('land',false),
+    landAcres: (document.getElementById('landAcres')||{}).value||'',
+    ownsMilchAnimals: getSelected('milch',false),
+    milchCount: (document.getElementById('milchCount')||{}).value||'',
+    milkYield: (document.getElementById('milkYield')||{}).value||'',
+    fodderShortage: getSelected('fodder',false),
+    cropWaterShortage: getSelected('cropwater',false)
   };
 
-  fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(d)})
-    .then(function(){document.getElementById('submitBtn').disabled=false;_showThankYou();})
-    .catch(function(err){document.getElementById('submitBtn').disabled=false;showProcessingOverlay(false);showStatus('❌ Error: '+(err.message||'Network error.'),'error');});
+  // ✅ POST to Google Apps Script — works from GitHub Pages
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(d)
+  })
+  .then(function() {
+    document.getElementById('submitBtn').disabled = false;
+    onSuccess({ status: 'success' });
+  })
+  .catch(function(err) {
+    document.getElementById('submitBtn').disabled = false;
+    onError({ message: err.message || 'Network error. Please check your connection and try again.' });
+  });
 }
 
-function _showThankYou(){
-  showProcessingOverlay(false);formSubmitted=true;
-  var isTa=(lang==='ta-IN');
-  var name=(window._submitNameT||window._submitNameA||'').trim();
-  var village=getSelected('village',false)||'';
-  var today=(document.getElementById('dateDisplay')||{}).textContent||'';
-  var greeting=isTa?(name?name+' அவர்களே, வணக்கம்! 🙏':'வணக்கம்! 🙏'):(name?'Dear '+name+', 🙏':'Thank you! 🙏');
-  document.getElementById('appBody').innerHTML='<div class="thankyou-wrap"><div class="thankyou-icon">✅</div><div class="thankyou-org">Hand in Hand India · Project SIVD Phase I</div><div class="thankyou-heading">'+(isTa?'நன்றி!':'Survey Submitted!')+'</div><div style="font-size:20px;font-weight:700;color:#1565C0;margin-bottom:16px">'+greeting+'</div><div class="thankyou-card"><p>'+(isTa?'📋 உங்கள் கணக்கெடுப்பு <strong>'+(today||'இன்று')+'</strong> அன்று வெற்றிகரமாக பதிவு செய்யப்பட்டது.<br>கிராமம்: <strong>'+(village||'—')+'</strong><br><br>🙌 உங்கள் மதிப்புமிக்க பங்களிப்பிற்கு மிகவும் நன்றி.':'📋 Your response was recorded on <strong>'+(today||'today')+'</strong>.<br>Village: <strong>'+(village||'—')+'</strong><br><br>🙌 Your valuable input will help plan better programmes for your community.')+'</p></div><hr class="thankyou-divider"><div class="thankyou-footer">'+(isTa?'📞 உங்கள் கணக்கெடுப்பு ஒருங்கிணைப்பாளரிடம் தெரிவிக்கவும்.<br>தகவல் முற்றிலும் ரகசியமாக வைக்கப்படும்.':'📞 Please inform your survey coordinator that this form has been submitted.<br>All information is kept strictly confidential.')+'</div><div class="thankyou-stars">🌟🌟🌟</div></div>';
-  window.scrollTo({top:0,behavior:'smooth'});
+// ================================================================
+//  SUCCESS
+// ================================================================
+function onSuccess(res) {
+  showProcessingOverlay(false);
+  formSubmitted = true;
+  var isTa = (lang === 'ta-IN');
+  var respondentName = (window._submitNameT || window._submitNameA || '').trim();
+  var villageName = getSelected('village',false) || '';
+  var today = (document.getElementById('dateDisplay')||{}).textContent || '';
+  var appBody = document.getElementById('appBody');
+  if (!appBody) return;
+  var greeting = isTa
+    ? (respondentName ? respondentName + ' அவர்களே, வணக்கம்! 🙏' : 'வணக்கம்! 🙏')
+    : (respondentName ? 'Dear ' + respondentName + ', 🙏' : 'Thank you! 🙏');
+  appBody.innerHTML =
+    '<div class="thankyou-wrap">' +
+      '<div class="thankyou-icon">✅</div>' +
+      '<div class="thankyou-org">Hand in Hand India · Project SIVD Phase I</div>' +
+      '<div class="thankyou-heading">' + (isTa?'நன்றி!':'Survey Submitted!') + '</div>' +
+      '<div style="font-size:20px;font-weight:700;color:#1565C0;margin-bottom:16px">' + greeting + '</div>' +
+      '<div class="thankyou-card"><p>' +
+        (isTa
+          ? '📋 உங்கள் கணக்கெடுப்பு <strong>'+(today||'இன்று')+'</strong> அன்று வெற்றிகரமாக பதிவு செய்யப்பட்டது.<br>கிராமம்: <strong>'+(villageName||'—')+'</strong><br><br>🙌 உங்கள் மதிப்புமிக்க பங்களிப்பிற்கு மிகவும் நன்றி.'
+          : '📋 Your response was recorded on <strong>'+(today||'today')+'</strong>.<br>Village: <strong>'+(villageName||'—')+'</strong><br><br>🙌 Your valuable input will help plan better programmes for your community.') +
+      '</p></div>' +
+      '<hr class="thankyou-divider">' +
+      '<div class="thankyou-footer">' +
+        (isTa
+          ? '📞 உங்கள் கணக்கெடுப்பு ஒருங்கிணைப்பாளரிடம் தெரிவிக்கவும்.<br>தகவல் முற்றிலும் ரகசியமாக வைக்கப்படும்.<br><br><em>Hand in Hand India – மக்கள் வாழ்க்கையை மேம்படுத்துவதற்காக</em>'
+          : '📞 Please inform your survey coordinator that this form has been submitted.<br>All information is kept strictly confidential.<br><br><em>Hand in Hand India – Empowering people, transforming lives</em>') +
+      '</div>' +
+      '<div class="thankyou-stars">🌟🌟🌟</div>' +
+    '</div>';
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
-function showStatus(msg,type){var d=document.getElementById('status');if(!d)return;d.textContent=msg;d.className='status '+type;}
+function onError(err) {
+  showProcessingOverlay(false);
+  var isTa = (lang === 'ta-IN');
+  showStatus('❌ ' + (isTa?'பிழை: ':'Error: ') + ((err&&err.message)||err||'Unknown error'), 'error');
+  var btn = document.getElementById('submitBtn');
+  if (btn) btn.disabled = false;
+}
+
+function showStatus(msg,type) {
+  const d = document.getElementById('status');
+  if (!d) return;
+  d.textContent = msg; d.className = 'status ' + type;
+}
 </script>
 </body>
 </html>
