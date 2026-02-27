@@ -803,196 +803,115 @@ var gpsLat = "", gpsLng = "";
 var isRec = false, recog = null, curMicBtn = null, curMicField = null;
 
 // ============================================================
-//  TTS ENGINE v3 — Universal: Web Speech API + Google TTS proxy
+//  TTS ENGINE v4 — FINAL (built from confirmed test results)
 //
-//  Strategy (in order):
-//  1. Web Speech API — works on ALL modern browsers on desktop & mobile
-//     Chrome desktop has Google's Tamil voice built in (online, natural)
-//     Android Chrome also has it. Just need to wait for voices to load.
-//  2. Google TTS via allorigins CORS proxy — bypasses CORS on desktop
-//  3. Google TTS direct — works on mobile
-//  4. Text banner only
+//  TEST RESULTS ON YOUR LAPTOP:
+//  ✅ AllOrigins Proxy  → PLAYS Tamil perfectly
+//  ✅ Web Speech API    → Works for English only
+//  ❌ Google TTS Direct → Blocked by browser
+//  ❌ Web Speech Tamil  → Silent (no Tamil voice on device)
 //
-//  IMPORTANT: Chrome desktop loads voices ASYNC. We must wait for
-//  speechSynthesis.onvoiceschanged before picking a voice.
+//  TAMIL  = AllOrigins proxy → direct fallback → banner
+//  ENGLISH = Web Speech API (confirmed working perfectly)
 // ============================================================
 var ttsActive = false;
 var activeBtnId = null;
 var _ttsAudio = null;
 var _ttsUtterance = null;
-var _voicesReady = false;
 var _voicesList = [];
-var _pendingSpeak = null; // queued speak call waiting for voices
 
 window.onload = function() {
   captureGPS();
   setDate();
-  _initVoices();
+  if ('speechSynthesis' in window) {
+    var _lv = function(){ _voicesList = window.speechSynthesis.getVoices(); };
+    _lv();
+    window.speechSynthesis.onvoiceschanged = _lv;
+    setTimeout(_lv, 500);
+    setTimeout(_lv, 2000);
+  }
 };
 
-function _initVoices() {
-  if (!('speechSynthesis' in window)) return;
-  function _load() {
-    var v = window.speechSynthesis.getVoices();
-    if (v && v.length > 0) {
-      _voicesList = v;
-      _voicesReady = true;
-      // If a speak call was queued while voices were loading, fire it now
-      if (_pendingSpeak) { var fn = _pendingSpeak; _pendingSpeak = null; fn(); }
-    }
-  }
-  _load();
-  window.speechSynthesis.onvoiceschanged = _load;
-  // Retry a few times — Chrome desktop can be slow
-  setTimeout(_load, 500);
-  setTimeout(_load, 1500);
-  setTimeout(_load, 3000);
-}
-
-function _findVoice(langCode) {
-  var v = _voicesList;
-  if (!v || v.length === 0) return null;
-  if (langCode === 'ta-IN' || langCode === 'ta') {
-    // Best: Google's online Tamil (Chrome desktop ships with this)
-    return v.find(function(x){ return !x.localService && (x.lang==='ta-IN' || x.lang.startsWith('ta')); })
-        || v.find(function(x){ return x.lang==='ta-IN'; })
-        || v.find(function(x){ return x.lang.startsWith('ta'); })
-        || v.find(function(x){ return (x.name||'').toLowerCase().indexOf('tamil')>=0; })
-        || null;
-  } else {
-    return v.find(function(x){ return x.lang==='en-IN'; })
-        || v.find(function(x){ return x.lang==='en-GB'; })
-        || v.find(function(x){ return x.lang.startsWith('en'); })
-        || null;
-  }
-}
-
-// Split text into chunks for Google TTS (max 200 chars)
-function _chunks(text, max) {
-  max = max || 180;
-  if (text.length <= max) return [text];
+function _chunks(text) {
+  if (text.length <= 180) return [text];
   var result = [], words = text.split(' '), cur = '';
   words.forEach(function(w) {
-    if ((cur+' '+w).trim().length > max) { if(cur) result.push(cur.trim()); cur=w; }
+    if ((cur+' '+w).trim().length > 180) { if(cur) result.push(cur.trim()); cur=w; }
     else { cur=(cur+' '+w).trim(); }
   });
   if (cur) result.push(cur.trim());
-  return result.length ? result : [text.substring(0,max)];
+  return result.length ? result : [text.substring(0,180)];
 }
 
-// Google TTS URL — try proxy first (bypasses CORS on desktop), fallback to direct
-function _gttsUrl(text, langCode, useProxy) {
-  var tl = langCode === 'ta-IN' ? 'ta' : 'en';
-  var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' + tl + '&q=' + encodeURIComponent(text);
-  if (useProxy) {
-    // allorigins.win is a free public CORS proxy — works on all browsers
-    return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(direct);
-  }
-  return direct;
-}
-
-// Play audio chunks sequentially
-function _playChunks(chunks, idx, langCode, useProxy, onDone) {
+function _playTamilChunks(chunks, idx, onDone) {
   if (idx >= chunks.length || !ttsActive) { if(onDone) onDone('done'); return; }
-  var url = _gttsUrl(chunks[idx], langCode, useProxy);
-  var a = new Audio(url);
+  var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(chunks[idx]);
+  var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
+
+  function tryDirect() {
+    var a2 = new Audio(direct);
+    _ttsAudio = a2;
+    a2.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
+    a2.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
+    a2.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
+  }
+
+  var a = new Audio(proxyUrl);
   _ttsAudio = a;
-  a.onended = function(){ _playChunks(chunks, idx+1, langCode, useProxy, onDone); };
-  a.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
-  var p = a.play();
-  if (p && p.catch) p.catch(function(e){ _ttsAudio=null; if(onDone) onDone('blocked'); });
+  a.onended = function(){ _playTamilChunks(chunks, idx+1, onDone); };
+  a.onerror = function(){ _ttsAudio=null; tryDirect(); };
+  a.play().catch(function(){ _ttsAudio=null; tryDirect(); });
 }
 
-// Web Speech API speak
-function _wsSpeech(text, voice, langCode, rate, onEnd, onError) {
-  if (!('speechSynthesis' in window)) { if(onError) onError(); return; }
+function _speakEnglish(text, onEnd) {
+  if (!('speechSynthesis' in window)) { if(onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
   var u = new SpeechSynthesisUtterance(text);
   _ttsUtterance = u;
+  var voice = _voicesList.find(function(v){ return v.lang==='en-IN'; })
+           || _voicesList.find(function(v){ return v.lang==='en-GB'; })
+           || _voicesList.find(function(v){ return v.lang.startsWith('en'); })
+           || null;
   if (voice) { u.voice = voice; u.lang = voice.lang; }
-  else { u.lang = langCode; }
-  u.rate = rate || 0.88; u.pitch = 1.0; u.volume = 1.0;
+  else { u.lang = 'en-IN'; }
+  u.rate = 0.9; u.pitch = 1.0; u.volume = 1.0;
   u.onend = function(){ _ttsUtterance=null; if(onEnd) onEnd(); };
-  u.onerror = function(e){
-    _ttsUtterance=null;
-    // Chrome sometimes fires spurious 'interrupted' errors — ignore them
-    if (e && e.error === 'interrupted') return;
-    if(onError) onError();
-  };
+  u.onerror = function(e){ _ttsUtterance=null; if(e.error!=='interrupted' && onEnd) onEnd(); };
   window.speechSynthesis.speak(u);
-  // Chrome desktop bug: can get stuck in paused state
   setTimeout(function(){ try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){} }, 300);
 }
 
-// MAIN speak function
 function speakText(text, btnId) {
   if (!text || !text.trim()) return;
   if (ttsActive && activeBtnId === btnId) { stopAllAudio(); return; }
   stopAllAudio();
   ttsActive = true; activeBtnId = btnId;
-  setBtnState(btnId, true, 'loading');
-  showSpeakingBanner(text, lang === 'ta-IN');
-
-  // If voices not loaded yet on Chrome desktop, queue and wait
-  if (!_voicesReady && 'speechSynthesis' in window) {
-    _pendingSpeak = function(){ _doSpeak(text, btnId); };
-    // Also try after short delay in case onvoiceschanged already fired
-    setTimeout(function(){
-      if (_pendingSpeak) { var fn=_pendingSpeak; _pendingSpeak=null; fn(); }
-    }, 1200);
-    return;
-  }
-  _doSpeak(text, btnId);
-}
-
-function _doSpeak(text, btnId) {
   var isTa = (lang === 'ta-IN');
-  var langCode = isTa ? 'ta-IN' : 'en-IN';
-  var chunks = _chunks(text, 180);
+  setBtnState(btnId, true, 'loading');
+  showSpeakingBanner(text, isTa);
 
   function done() {
     ttsActive=false; activeBtnId=null;
     setBtnState(btnId, false); hideSpeakingBanner();
   }
 
-  // Step 3: Google TTS via direct URL (mobile, some desktop)
-  function tryDirect() {
+  if (isTa) {
     setBtnState(btnId, true, 'playing');
-    _playChunks(chunks, 0, langCode, false, function(result){
+    _playTamilChunks(_chunks(text), 0, function(result){
       if (result === 'done') { done(); }
       else {
-        // Step 4: Text banner only — no audio available
         setBtnState(btnId, false);
         ttsActive=false; activeBtnId=null;
         updateBannerState(false);
-        setTimeout(hideSpeakingBanner, 9000);
+        setTimeout(hideSpeakingBanner, 10000);
       }
     });
-  }
-
-  // Step 2: Google TTS via CORS proxy (works on ALL desktop browsers)
-  function tryProxy() {
-    setBtnState(btnId, true, 'playing');
-    _playChunks(chunks, 0, langCode, true, function(result){
-      if (result === 'done') { done(); }
-      else { tryDirect(); }
-    });
-  }
-
-  // Step 1: Web Speech API (best quality — Chrome desktop has Google Tamil built in)
-  var voice = _findVoice(langCode);
-  if (voice) {
-    setBtnState(btnId, true, 'playing');
-    _wsSpeech(text, voice, langCode, isTa ? 0.85 : 0.9, done, tryProxy);
-  } else if ('speechSynthesis' in window) {
-    // No matching voice but browser has speech — try with lang hint only
-    setBtnState(btnId, true, 'playing');
-    _wsSpeech(text, null, langCode, isTa ? 0.85 : 0.9, done, tryProxy);
   } else {
-    // No Web Speech at all — go straight to Google TTS proxy
-    tryProxy();
+    setBtnState(btnId, true, 'playing');
+    _speakEnglish(text, done);
   }
 }
+
 
 function stopAllAudio() {
   _pendingSpeak = null;
