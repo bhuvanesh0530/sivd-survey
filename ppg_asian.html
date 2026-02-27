@@ -4,6 +4,7 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
+  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -803,20 +804,10 @@ var gpsLat = "", gpsLng = "";
 var isRec = false, recog = null, curMicBtn = null, curMicField = null;
 
 // ============================================================
-//  TTS ENGINE v4 — FINAL (built from confirmed test results)
-//
-//  TEST RESULTS ON YOUR LAPTOP:
-//  ✅ AllOrigins Proxy  → PLAYS Tamil perfectly
-//  ✅ Web Speech API    → Works for English only
-//  ❌ Google TTS Direct → Blocked by browser
-//  ❌ Web Speech Tamil  → Silent (no Tamil voice on device)
-//
-//  TAMIL  = AllOrigins proxy → direct fallback → banner
-//  ENGLISH = Web Speech API (confirmed working perfectly)
+//  TTS ENGINE v5 — ResponsiveVoice (instant, works on ALL platforms)
 // ============================================================
 var ttsActive = false;
 var activeBtnId = null;
-var _ttsAudio = null;
 var _ttsUtterance = null;
 var _voicesList = [];
 
@@ -828,96 +819,8 @@ window.onload = function() {
     _lv();
     window.speechSynthesis.onvoiceschanged = _lv;
     setTimeout(_lv, 500);
-    setTimeout(_lv, 2000);
   }
 };
-
-function _chunks(text) {
-  // Keep chunks larger (up to 180 chars) to minimise number of requests
-  if (text.length <= 180) return [text];
-  var result = [], words = text.split(' '), cur = '';
-  words.forEach(function(w) {
-    if ((cur+' '+w).trim().length > 180) { if(cur) result.push(cur.trim()); cur=w; }
-    else { cur=(cur+' '+w).trim(); }
-  });
-  if (cur) result.push(cur.trim());
-  return result.length ? result : [text.substring(0,180)];
-}
-
-// Fetch a single chunk as an audio/mpeg blob URL (Test E method — fastest confirmed)
-function _fetchBlobUrl(text) {
-  var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(text);
-  var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  return fetch(proxyUrl)
-    .then(function(r){ return r.arrayBuffer(); })
-    .then(function(buf){
-      var blob = new Blob([buf], {type:'audio/mpeg'});
-      return URL.createObjectURL(blob);
-    });
-}
-
-// Pre-fetch ALL chunks in parallel, then play sequentially — no waiting between chunks
-function _playTamilChunks(chunks, idx, onDone) {
-  if (!ttsActive) { if(onDone) onDone('done'); return; }
-
-  // Fetch all chunks simultaneously
-  setBtnState(activeBtnId, true, 'loading');
-  var promises = chunks.map(function(chunk){ return _fetchBlobUrl(chunk); });
-
-  Promise.all(promises)
-    .then(function(blobUrls) {
-      if (!ttsActive) { blobUrls.forEach(function(u){ URL.revokeObjectURL(u); }); return; }
-      setBtnState(activeBtnId, true, 'playing');
-      // Play sequentially now that all are ready
-      function playNext(i) {
-        if (i >= blobUrls.length || !ttsActive) {
-          blobUrls.forEach(function(u){ URL.revokeObjectURL(u); });
-          if(onDone) onDone('done');
-          return;
-        }
-        var a = new Audio(blobUrls[i]);
-        _ttsAudio = a;
-        a.onended = function(){ playNext(i+1); };
-        a.onerror = function(){ playNext(i+1); };
-        a.play().catch(function(){ playNext(i+1); });
-      }
-      playNext(0);
-    })
-    .catch(function(err) {
-      // Promise.all failed — fall back to playing chunks one by one sequentially
-      _playTamilChunksFallback(chunks, 0, onDone);
-    });
-}
-
-// Fallback: play chunks one by one (slower but reliable)
-function _playTamilChunksFallback(chunks, idx, onDone) {
-  if (idx >= chunks.length || !ttsActive) { if(onDone) onDone('done'); return; }
-  var direct = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ta&q='+encodeURIComponent(chunks[idx]);
-  var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(direct);
-  var a = new Audio(proxyUrl);
-  _ttsAudio = a;
-  a.onended = function(){ _playTamilChunksFallback(chunks, idx+1, onDone); };
-  a.onerror = function(){ _ttsAudio=null; if(onDone) onDone('error'); };
-  a.play().catch(function(){ _ttsAudio=null; if(onDone) onDone('error'); });
-}
-
-function _speakEnglish(text, onEnd) {
-  if (!('speechSynthesis' in window)) { if(onEnd) onEnd(); return; }
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance(text);
-  _ttsUtterance = u;
-  var voice = _voicesList.find(function(v){ return v.lang==='en-IN'; })
-           || _voicesList.find(function(v){ return v.lang==='en-GB'; })
-           || _voicesList.find(function(v){ return v.lang.startsWith('en'); })
-           || null;
-  if (voice) { u.voice = voice; u.lang = voice.lang; }
-  else { u.lang = 'en-IN'; }
-  u.rate = 0.9; u.pitch = 1.0; u.volume = 1.0;
-  u.onend = function(){ _ttsUtterance=null; if(onEnd) onEnd(); };
-  u.onerror = function(e){ _ttsUtterance=null; if(e.error!=='interrupted' && onEnd) onEnd(); };
-  window.speechSynthesis.speak(u);
-  setTimeout(function(){ try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){} }, 300);
-}
 
 function speakText(text, btnId) {
   if (!text || !text.trim()) return;
@@ -925,7 +828,7 @@ function speakText(text, btnId) {
   stopAllAudio();
   ttsActive = true; activeBtnId = btnId;
   var isTa = (lang === 'ta-IN');
-  setBtnState(btnId, true, 'loading');
+  setBtnState(btnId, true, 'playing');
   showSpeakingBanner(text, isTa);
 
   function done() {
@@ -934,20 +837,38 @@ function speakText(text, btnId) {
   }
 
   if (isTa) {
-    setBtnState(btnId, true, 'playing');
-    _playTamilChunks(_chunks(text), 0, function(result){
-      if (result === 'done') { done(); }
-      else {
-        setBtnState(btnId, false);
-        ttsActive=false; activeBtnId=null;
-        updateBannerState(false);
-        setTimeout(hideSpeakingBanner, 10000);
-      }
-    });
+    // Tamil: ResponsiveVoice Tamil Female — instant, works on all browsers
+    if (typeof responsiveVoice !== 'undefined') {
+      responsiveVoice.speak(text, 'Tamil Female', {
+        rate: 0.9, pitch: 1, volume: 1,
+        onstart: function(){ setBtnState(btnId, true, 'playing'); },
+        onend: done,
+        onerror: done
+      });
+    } else {
+      // RV not loaded — Web Speech fallback
+      _wsSpeech(text, 'ta-IN', done);
+    }
   } else {
-    setBtnState(btnId, true, 'playing');
-    _speakEnglish(text, done);
+    // English: Web Speech API
+    _wsSpeech(text, 'en-IN', done);
   }
+}
+
+function _wsSpeech(text, langCode, onEnd) {
+  if (!('speechSynthesis' in window)) { if(onEnd) onEnd(); return; }
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  _ttsUtterance = u;
+  var voice = _voicesList.find(function(v){ return v.lang===langCode; })
+           || _voicesList.find(function(v){ return v.lang.startsWith(langCode.split('-')[0]); })
+           || null;
+  if (voice) { u.voice=voice; u.lang=voice.lang; } else { u.lang=langCode; }
+  u.rate=0.9; u.pitch=1; u.volume=1;
+  u.onend = function(){ _ttsUtterance=null; if(onEnd) onEnd(); };
+  u.onerror = function(e){ _ttsUtterance=null; if(e.error!=='interrupted' && onEnd) onEnd(); };
+  window.speechSynthesis.speak(u);
+  setTimeout(function(){ try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){} },300);
 }
 
 
