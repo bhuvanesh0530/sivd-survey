@@ -6,8 +6,6 @@
   <meta charset="UTF-8">
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
   
-  <!-- ResponsiveVoice: Real Tamil TTS that works on ANY device -->
-  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1565C0 0%,#0D47A1 100%);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center}
@@ -1048,10 +1046,25 @@ function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getE
 function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
 
 // ================================================================
-//  ✅ TTS ENGINE — ResponsiveVoice (works on ANY device)
-//  Tamil Female voice works WITHOUT installing Tamil on Android/iOS
+//  ✅ TTS ENGINE — Google Translate TTS via CORS proxy
+//  Works on ALL devices, ALL browsers, FREE forever
+//  No API key. No installation. Just internet connection.
 // ================================================================
-var ttsActive=false, activeBtnId=null;
+var ttsActive=false, activeBtnId=null, _curAudio=null;
+
+// Split long text into chunks ≤180 chars at sentence boundaries
+function _chunks(text, max){
+  if(!text||text.length<=max) return [text];
+  var out=[], sentences=text.split(/[।.!?
+]+/), cur='';
+  for(var i=0;i<sentences.length;i++){
+    var s=sentences[i].trim(); if(!s) continue;
+    if((cur+' '+s).trim().length<=max){ cur=(cur+' '+s).trim(); }
+    else { if(cur) out.push(cur); cur=s.length>max?s.substring(0,max):s; }
+  }
+  if(cur) out.push(cur);
+  return out.filter(function(c){return c.trim();});
+}
 
 function speakText(text, btnId){
   if(!text||!text.trim()) return;
@@ -1061,35 +1074,78 @@ function speakText(text, btnId){
   setBtnState(btnId,true,'loading');
 
   if(lang==='ta-IN'){
-    // ResponsiveVoice Tamil Female — works on all Android/iOS without Tamil installed
-    if(typeof responsiveVoice==='undefined'){
-      setBtnState(btnId,false); activeBtnId=null;
-      alert('Audio library is loading. Please check your internet connection and try again.');
-      return;
-    }
-    responsiveVoice.speak(text,'Tamil Female',{
-      rate:0.9, pitch:1, volume:1,
-      onstart:function(){ ttsActive=true; setBtnState(btnId,true,'playing'); },
-      onend:function(){ ttsActive=false; setBtnState(btnId,false); activeBtnId=null; },
-      onerror:function(){ ttsActive=false; setBtnState(btnId,false); activeBtnId=null; }
-    });
-    ttsActive=true; setBtnState(btnId,true,'playing');
+    _speakTamilGoogleProxy(text, btnId);
   } else {
-    if(!('speechSynthesis' in window)){ setBtnState(btnId,false); activeBtnId=null; return; }
-    window.speechSynthesis.cancel();
-    var u=new SpeechSynthesisUtterance(text);
-    u.lang='en-IN'; u.rate=0.88; u.pitch=1; u.volume=1;
-    var voices=window.speechSynthesis.getVoices();
-    var ev=voices.find(function(v){return v.lang==='en-IN';})||voices.find(function(v){return v.lang==='en-GB';})||voices.find(function(v){return v.lang.startsWith('en');});
-    if(ev) u.voice=ev;
-    u.onstart=function(){ttsActive=true;setBtnState(btnId,true,'playing');};
-    u.onend=function(){ttsActive=false;setBtnState(btnId,false);activeBtnId=null;};
-    u.onerror=function(){ttsActive=false;setBtnState(btnId,false);activeBtnId=null;};
-    window.speechSynthesis.speak(u);
-    ttsActive=true; setBtnState(btnId,true,'playing');
-    setTimeout(function(){if(window.speechSynthesis.paused)window.speechSynthesis.resume();},200);
+    _speakEnglish(text, btnId);
   }
 }
+
+function _speakTamilGoogleProxy(text, btnId){
+  var chunks = _chunks(text, 180);
+  var idx = 0;
+
+  function playNext(){
+    if(idx >= chunks.length){
+      ttsActive=false; setBtnState(btnId,false); activeBtnId=null; return;
+    }
+    var chunk = chunks[idx++];
+    // Google Translate TTS fetched via CORS proxy (allorigins.win)
+    var googleUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&q='
+      + encodeURIComponent(chunk) + '&tl=ta&client=tw-ob&ttsspeed=0.9';
+    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(googleUrl);
+
+    fetch(proxyUrl)
+      .then(function(r){ return r.blob(); })
+      .then(function(blob){
+        var url = URL.createObjectURL(blob);
+        var audio = new Audio(url);
+        _curAudio = audio;
+        audio.onplay  = function(){ ttsActive=true; setBtnState(btnId,true,'playing'); };
+        audio.onended = function(){ URL.revokeObjectURL(url); _curAudio=null; playNext(); };
+        audio.onerror = function(){ URL.revokeObjectURL(url); _curAudio=null;
+          // proxy failed - try browser TTS as last resort
+          _speakTamilBrowser(text, btnId);
+        };
+        audio.play().catch(function(){
+          _curAudio=null; _speakTamilBrowser(text, btnId);
+        });
+      })
+      .catch(function(){
+        _speakTamilBrowser(text, btnId);
+      });
+  }
+  playNext();
+}
+
+function _speakTamilBrowser(text, btnId){
+  // Last resort: browser Web Speech API
+  if(!('speechSynthesis' in window)){ ttsActive=false; setBtnState(btnId,false); activeBtnId=null; return; }
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang='ta-IN'; u.rate=0.8; u.volume=1;
+  u.onstart=function(){ttsActive=true;setBtnState(btnId,true,'playing');};
+  u.onend=function(){ttsActive=false;setBtnState(btnId,false);activeBtnId=null;};
+  u.onerror=function(){ttsActive=false;setBtnState(btnId,false);activeBtnId=null;};
+  window.speechSynthesis.speak(u);
+  ttsActive=true; setBtnState(btnId,true,'playing');
+}
+
+function _speakEnglish(text, btnId){
+  if(!('speechSynthesis' in window)){ setBtnState(btnId,false); activeBtnId=null; return; }
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang='en-IN'; u.rate=0.88; u.pitch=1; u.volume=1;
+  var voices=window.speechSynthesis.getVoices();
+  var ev=voices.find(function(v){return v.lang==='en-IN';})||voices.find(function(v){return v.lang==='en-GB';})||voices.find(function(v){return v.lang.startsWith('en');});
+  if(ev) u.voice=ev;
+  u.onstart=function(){ttsActive=true;setBtnState(btnId,true,'playing');};
+  u.onend=function(){ttsActive=false;setBtnState(btnId,false);activeBtnId=null;};
+  u.onerror=function(){ttsActive=false;setBtnState(btnId,false);activeBtnId=null;};
+  window.speechSynthesis.speak(u);
+  ttsActive=true; setBtnState(btnId,true,'playing');
+  setTimeout(function(){if(window.speechSynthesis.paused)window.speechSynthesis.resume();},200);
+}
+
 
 function stopAllAudio(){
   if(typeof responsiveVoice!=='undefined'){try{responsiveVoice.cancel();}catch(e){}}
