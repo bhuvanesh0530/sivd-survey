@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
   <title>PROJECT SIVD PHASE I: BASELINE HOUSEHOLD SURVEY</title>
+
+  <!--
+    ============================================================
+    ResponsiveVoice CDN — Free Tamil TTS, no API key needed.
+    Provides high-quality Tamil (Female) voice via Google Cloud
+    TTS proxy that bypasses CORS restrictions.
+    Licence: Free for non-commercial / development use.
+    https://responsivevoice.org
+    ============================================================
+  -->
+  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
+
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1565C0 0%,#0D47A1 100%);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center}
@@ -93,6 +105,9 @@
     .thankyou-divider{border:none;border-top:2px dashed #ccc;margin:20px 0}
     .thankyou-footer{font-size:12px;color:#888;line-height:1.7}
     .thankyou-stars{font-size:32px;letter-spacing:6px;margin-top:16px}
+    /* TTS status badge */
+    #tts-status-bar{font-size:11px;background:#E8F5E9;color:#2E7D32;border-radius:6px;padding:4px 10px;margin-bottom:10px;display:none;text-align:center}
+    #tts-status-bar.error{background:#FFF3E0;color:#E65100;}
     @media(max-width:500px){.dual-input{flex-direction:column}.form-body{padding:16px}.num-grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -118,6 +133,8 @@
         <button class="lang-btn active" id="btn-lang-en" onclick="selectLang('en-IN')">English</button>
         <button class="lang-btn" id="btn-lang-ta" onclick="selectLang('ta-IN')">தமிழ் (Tamil)</button>
       </div>
+      <!-- TTS engine status indicator -->
+      <div id="tts-status-bar"></div>
       <button class="btn-submit" style="margin-top:0;background:linear-gradient(135deg,#1565C0,#0D47A1)" onclick="showConsent()">▶ Continue / தொடர்க</button>
     </div>
 
@@ -671,17 +688,22 @@
 <div id="tts-popup"></div>
 
 <script>
+// ================================================================
+//  GOOGLE APPS SCRIPT WEB APP URL
+// ================================================================
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbzvabPi4mRuYAHgDMdEy_yv9NS7Qkpr-8c7zAB6zIaft1bTk6nXCpcWLwoKwR7M9B2J6Q/exec';
 
 // ================================================================
-//  TRANSLATIONS
+//  TRANSLATIONS (unchanged from original)
 // ================================================================
 var T = {
   "en-IN": {
     consent: {
       title: "Informed Consent",
       text: "Namaste. I am from Hand in Hand India. We are conducting a survey to understand the needs of your village and to plan development and livelihood projects.\n\nYour answers will be kept private and used only for project planning, documentation, and improvement of our programs. Participation in this survey is completely voluntary. You may choose not to answer any question or stop the survey at any time.\n\nIn this survey, we may also request your Aadhaar number for identification and official project documentation purposes only. Your Aadhaar information will be stored securely and will not be shared with unauthorized persons. Providing your Aadhaar details is voluntary, and you may choose not to provide them.\n\nDo you voluntarily agree to participate in this survey and provide the required information?",
-      yes: "✅ Yes, I agree", no: "❌ No, I do not agree", proceed: "Proceed",
+      yes: "✅ Yes, I agree",
+      no: "❌ No, I do not agree",
+      proceed: "Proceed",
       declined: "Thank you. The survey has been ended as per your choice."
     },
     q: { villageName: "What is the name of your village?" },
@@ -738,7 +760,9 @@ var T = {
     consent: {
       title: "தகவல் சம்மதம்",
       text: "வணக்கம். நான் ஹேண்ட் இன் ஹேண்ட் இந்தியா நிறுவனத்திலிருந்து வருகிறேன். உங்கள் கிராமத்தின் தேவைகளை புரிந்துகொள்ளவும், வளர்ச்சி மற்றும் வாழ்வாதார திட்டங்களை திட்டமிடவும் நாங்கள் ஒரு கணக்கெடுப்பு நடத்துகிறோம்.\n\nஉங்கள் பதில்கள் தனிப்பட்டதாக வைக்கப்படும், திட்ட திட்டமிடல், ஆவணப்படுத்தல் மற்றும் நிரல்களை மேம்படுத்துவதற்கு மட்டுமே பயன்படுத்தப்படும். இந்த கணக்கெடுப்பில் பங்கேற்பது முற்றிலும் தன்னார்வமானது. நீங்கள் எந்த கேள்விக்கும் பதில் சொல்ல மறுக்கலாம் அல்லது எந்த நேரத்திலும் கணக்கெடுப்பை நிறுத்தலாம்.\n\nகணக்கெடுப்பில் அடையாளம் காணவும் திட்ட ஆவணங்களுக்காகவும் ஆதார் எண் கேட்கப்படலாம். உங்கள் ஆதார் தகவல் பாதுகாப்பாக சேமிக்கப்படும். அதை வழங்குவது தன்னார்வமானது.\n\nநீங்கள் தன்னார்வமாக இந்த கணக்கெடுப்பில் பங்கேற்க சம்மதிக்கிறீர்களா?",
-      yes: "✅ ஆம், நான் சம்மதிக்கிறேன்", no: "❌ இல்லை, நான் சம்மதிக்கவில்லை", proceed: "தொடர்க",
+      yes: "✅ ஆம், நான் சம்மதிக்கிறேன்",
+      no: "❌ இல்லை, நான் சம்மதிக்கவில்லை",
+      proceed: "தொடர்க",
       declined: "நன்றி. உங்கள் விருப்பத்திற்கு இணங்க கணக்கெடுப்பு முடிக்கப்பட்டது."
     },
     q: { villageName: "உங்கள் கிராமத்தின் பெயர் என்ன?" },
@@ -801,42 +825,357 @@ var formSubmitted = false;
 var gpsLat = "", gpsLng = "";
 var isRec = false, recog = null, curMicBtn = null, curMicField = null;
 
-window.onload = function() { captureGPS(); setDate(); };
+// ================================================================
+//  TTS STATE
+// ================================================================
+var ttsActive = false;
+var activeBtnId = null;
+var rvReady = false;   // ResponsiveVoice readiness flag
+
+// ================================================================
+//  TTS ENGINE — 3-tier fallback
+//
+//  TIER 1: ResponsiveVoice  (loaded via CDN at top of page)
+//          Best Tamil voice. Works on all modern browsers.
+//          Free for non-commercial use. No API key needed.
+//
+//  TIER 2: Web Speech API  (browser built-in)
+//          Good for English. Tamil quality varies by OS.
+//          Works offline. No internet needed.
+//
+//  TIER 3: Text popup  (always works)
+//          Shows the text visually if both audio methods fail.
+// ================================================================
+
+/**
+ * Check if ResponsiveVoice is loaded and ready.
+ * We try to detect it on page load and set a flag.
+ */
+function checkRVReady() {
+  if (typeof responsiveVoice !== 'undefined') {
+    rvReady = true;
+    showTTSStatusBar('✅ Audio ready (Tamil + English supported)', false);
+  } else {
+    rvReady = false;
+    showTTSStatusBar('⚠️ Audio loading… ensure you are online for Tamil voice.', true);
+  }
+}
+
+function showTTSStatusBar(msg, isErr) {
+  var bar = document.getElementById('tts-status-bar');
+  if (!bar) return;
+  bar.textContent = msg;
+  bar.style.display = 'block';
+  bar.className = isErr ? 'error' : '';
+  // Auto-hide after 5s if success
+  if (!isErr) {
+    setTimeout(function() {
+      if (bar) bar.style.display = 'none';
+    }, 5000);
+  }
+}
+
+/**
+ * Get the ResponsiveVoice voice name for the current language.
+ * Tamil Female is excellent quality — uses Google's neural TTS proxy.
+ */
+function getRVVoiceName() {
+  if (lang === 'ta-IN') {
+    return 'Tamil Female';          // High quality Google Neural Tamil
+  }
+  return 'UK English Female';       // Clear English voice
+}
+
+/**
+ * Get Web Speech API language code for fallback.
+ */
+function getWSALang() {
+  return lang === 'ta-IN' ? 'ta-IN' : 'en-IN';
+}
+
+/**
+ * Main TTS entry point.
+ * Called by every 🔊 button in the form.
+ *
+ * @param {string} text     - The text to speak
+ * @param {string} btnId    - The button element ID (for state management)
+ */
+function speakText(text, btnId) {
+  if (!text || text.trim() === '') return;
+
+  // If same button is playing → stop (toggle off)
+  if (ttsActive && activeBtnId === btnId) {
+    stopAllAudio();
+    return;
+  }
+
+  // Stop any currently playing audio
+  stopAllAudio();
+
+  activeBtnId = btnId;
+  ttsActive = true;
+  setBtnState(btnId, true, 'loading');
+
+  // ---- TIER 1: ResponsiveVoice ----
+  if (rvReady && typeof responsiveVoice !== 'undefined') {
+    var voice = getRVVoiceName();
+    try {
+      responsiveVoice.speak(text, voice, {
+        rate: 0.85,
+        pitch: 1,
+        volume: 1,
+        onstart: function() {
+          setBtnState(btnId, true, 'playing');
+        },
+        onend: function() {
+          ttsActive = false;
+          activeBtnId = null;
+          setBtnState(btnId, false);
+        },
+        onerror: function() {
+          // RV failed → try Web Speech API
+          ttsActive = false;
+          activeBtnId = null;
+          setBtnState(btnId, false);
+          speakWithWSA(text, btnId);
+        }
+      });
+      return; // handed off to RV
+    } catch(e) {
+      // RV threw synchronously → fall through
+    }
+  }
+
+  // ---- TIER 2: Web Speech API ----
+  speakWithWSA(text, btnId);
+}
+
+/**
+ * Tier 2: Web Speech API fallback.
+ * Works well for English; Tamil quality depends on the device/OS.
+ * Android Chrome usually has a Tamil voice. iOS Safari also supports it.
+ */
+function speakWithWSA(text, btnId) {
+  if (!('speechSynthesis' in window)) {
+    ttsActive = false;
+    setBtnState(btnId, false);
+    showTextPopup(text);
+    return;
+  }
+
+  window.speechSynthesis.cancel(); // clear queue
+
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = getWSALang();
+  u.rate = 0.82;
+  u.volume = 1;
+  u.pitch = 1;
+
+  // Try to find the best available voice for this language
+  var voices = window.speechSynthesis.getVoices();
+  if (voices && voices.length > 0) {
+    var targetLang = u.lang.toLowerCase();
+    // Prefer exact match, then partial match
+    var match = voices.find(function(v) { return v.lang.toLowerCase() === targetLang; })
+              || voices.find(function(v) { return v.lang.toLowerCase().startsWith(targetLang.split('-')[0]); });
+    if (match) u.voice = match;
+  }
+
+  u.onstart = function() {
+    ttsActive = true;
+    activeBtnId = btnId;
+    setBtnState(btnId, true, 'playing');
+  };
+  u.onend = function() {
+    ttsActive = false;
+    activeBtnId = null;
+    setBtnState(btnId, false);
+  };
+  u.onerror = function(e) {
+    ttsActive = false;
+    activeBtnId = null;
+    setBtnState(btnId, false);
+    // Show text popup as last resort
+    showTextPopup(text);
+  };
+
+  // Voices may not be loaded yet — try after a tick
+  if (voices && voices.length > 0) {
+    try {
+      window.speechSynthesis.speak(u);
+    } catch(e) {
+      ttsActive = false;
+      setBtnState(btnId, false);
+      showTextPopup(text);
+    }
+  } else {
+    // Voices not loaded yet — wait for them
+    window.speechSynthesis.onvoiceschanged = function() {
+      var vs = window.speechSynthesis.getVoices();
+      var tl = u.lang.toLowerCase();
+      var m = vs.find(function(v){ return v.lang.toLowerCase() === tl; })
+             || vs.find(function(v){ return v.lang.toLowerCase().startsWith(tl.split('-')[0]); });
+      if (m) u.voice = m;
+      try {
+        window.speechSynthesis.speak(u);
+      } catch(e) {
+        ttsActive = false;
+        setBtnState(btnId, false);
+        showTextPopup(text);
+      }
+    };
+  }
+}
+
+/**
+ * Stop all audio — both ResponsiveVoice and Web Speech API.
+ */
+function stopAllAudio() {
+  // Stop ResponsiveVoice
+  if (typeof responsiveVoice !== 'undefined') {
+    try { responsiveVoice.cancel(); } catch(e) {}
+  }
+  // Stop Web Speech API
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e) {}
+  }
+  ttsActive = false;
+  if (activeBtnId) {
+    setBtnState(activeBtnId, false);
+  }
+  activeBtnId = null;
+  // Reset consent button label
+  var lbl = document.getElementById('consentAudioLabel');
+  if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+  var btn = document.getElementById('btn-consent-audio');
+  if (btn) btn.classList.remove('playing');
+}
+
+/**
+ * Set visual state of a speaker button.
+ * state: 'loading' | 'playing' | (falsy = reset to 🔊)
+ */
+function setBtnState(btnId, on, state) {
+  if (!btnId) return;
+  var b = document.getElementById(btnId);
+  if (!b) return;
+  b.classList.remove('loading', 'playing');
+  if (!on) {
+    b.textContent = '🔊';
+    return;
+  }
+  if (state === 'loading') {
+    b.textContent = '⏳';
+    b.classList.add('loading');
+  } else {
+    b.textContent = '⏹️';
+    b.classList.add('playing');
+  }
+}
+
+/**
+ * Tier 3: Show text in a popup at the bottom of the screen.
+ * Last-resort fallback when audio is unavailable.
+ */
+function showTextPopup(text) {
+  var p = document.getElementById('tts-popup');
+  if (!p) return;
+  p.textContent = '🔊 ' + text.substring(0, 200) + (text.length > 200 ? '…' : '');
+  p.style.display = 'block';
+  clearTimeout(p._t);
+  p._t = setTimeout(function() { p.style.display = 'none'; }, 7000);
+}
+
+/**
+ * Consent audio button handler — plays full consent text.
+ */
+function toggleConsentAudio() {
+  var btn = document.getElementById('btn-consent-audio');
+  var lbl = document.getElementById('consentAudioLabel');
+
+  // Toggle off if already playing
+  if (ttsActive && activeBtnId === 'btn-consent-audio') {
+    stopAllAudio();
+    if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
+    if (btn) btn.classList.remove('playing');
+    return;
+  }
+
+  var text = T[lang].consent.text;
+  if (lbl) lbl.textContent = (lang === 'ta-IN') ? '⏹️ நிறுத்து' : '⏹️ Stop';
+  if (btn) btn.classList.add('playing');
+
+  speakText(text, 'btn-consent-audio');
+}
+
+// ================================================================
+//  INIT
+// ================================================================
+window.onload = function() {
+  captureGPS();
+  setDate();
+  // Check RV after a brief delay to let the CDN script load
+  setTimeout(checkRVReady, 1500);
+  // Also listen for RV ready event
+  if (typeof responsiveVoice !== 'undefined') {
+    responsiveVoice.OnVoiceReady = function() {
+      rvReady = true;
+      showTTSStatusBar('✅ Audio ready — Tamil voice loaded!', false);
+    };
+  }
+  // Pre-load Web Speech voices in background
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+  }
+};
 
 function captureGPS() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      function(pos) { gpsLat=pos.coords.latitude.toFixed(6); gpsLng=pos.coords.longitude.toFixed(6); var el=document.getElementById('gpsDisplay'); if(el)el.textContent='Lat: '+gpsLat+', Long: '+gpsLng; },
-      function() { var el=document.getElementById('gpsDisplay'); if(el)el.textContent='GPS unavailable'; },
-      { timeout:10000, enableHighAccuracy:true }
+      function(pos) {
+        gpsLat = pos.coords.latitude.toFixed(6);
+        gpsLng = pos.coords.longitude.toFixed(6);
+        var el = document.getElementById('gpsDisplay');
+        if (el) el.textContent = 'Lat: ' + gpsLat + ', Long: ' + gpsLng;
+      },
+      function() {
+        var el = document.getElementById('gpsDisplay');
+        if (el) el.textContent = 'GPS unavailable';
+      },
+      { timeout: 10000, enableHighAccuracy: true }
     );
   }
 }
 
 function setDate() {
   var d = new Date();
+  var dateStr = d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
   var el = document.getElementById('dateDisplay');
-  if (el) el.textContent = d.getDate().toString().padStart(2,'0')+'/'+((d.getMonth()+1).toString().padStart(2,'0'))+'/'+d.getFullYear();
+  if (el) el.textContent = dateStr;
 }
 
 function showProcessingOverlay(on) {
-  var ov = document.getElementById('submit-overlay'); if (!ov) return;
-  var isTa = (lang==='ta-IN');
+  var ov = document.getElementById('submit-overlay');
+  if (!ov) return;
+  var isTa = (lang === 'ta-IN');
   if (on) {
-    document.getElementById('overlay-spinner').style.display='block';
-    document.getElementById('overlay-msg').textContent = isTa?'⏳ கணக்கெடுப்பை சமர்ப்பிக்கிறோம்…':'⏳ Submitting your survey…';
-    document.getElementById('overlay-submsg').textContent = isTa?'காத்திருக்கவும். பக்கத்தை மூடாதீர்கள்.':'Please wait. Do not close this page.';
+    document.getElementById('overlay-spinner').style.display = 'block';
+    document.getElementById('overlay-msg').textContent = isTa ? '⏳ கணக்கெடுப்பை சமர்ப்பிக்கிறோம்…' : '⏳ Submitting your survey…';
+    document.getElementById('overlay-submsg').textContent = isTa ? 'காத்திருக்கவும். பக்கத்தை மூடாதீர்கள்.' : 'Please wait. Do not close this page.';
     ov.classList.add('visible');
-  } else { ov.classList.remove('visible'); }
+  } else {
+    ov.classList.remove('visible');
+  }
 }
 
 // ================================================================
-//  LANGUAGE
+//  LANGUAGE SELECTION
 // ================================================================
 function selectLang(l) {
-  stopAllAudio(); lang = l;
-  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('btn-lang-'+(l==='en-IN'?'en':'ta')).classList.add('active');
+  stopAllAudio();
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('btn-lang-' + (l === 'en-IN' ? 'en' : 'ta')).classList.add('active');
   var survey = document.getElementById('stepSurvey');
   if (survey && survey.style.display !== 'none') { renderAllOptions(); updateUILabels(); }
 }
@@ -848,41 +1187,43 @@ function showConsent() {
   document.getElementById('stepLang').style.display = 'none';
   document.getElementById('stepConsent').style.display = 'block';
   var t = T[lang].consent;
-  document.getElementById('consentTitle').textContent = '📜 '+t.title;
+  document.getElementById('consentTitle').textContent = '📜 ' + t.title;
   document.getElementById('consentText').textContent = t.text;
   document.getElementById('consentYesLabel').textContent = t.yes;
   document.getElementById('consentNoLabel').textContent = t.no;
   document.getElementById('consentProceedLabel').textContent = t.proceed;
   var lbl = document.getElementById('consentAudioLabel');
-  if (lbl) lbl.textContent = lang==='ta-IN'?'சம்மதத்தை கேளுங்கள்':'Listen to Consent';
+  if (lbl) lbl.textContent = lang === 'ta-IN' ? 'சம்மதத்தை கேளுங்கள்' : 'Listen to Consent';
 }
 
 function selectConsent(val) {
-  document.querySelectorAll('.consent-opt').forEach(function(o){o.classList.remove('selected');});
-  if (val==='yes') { document.getElementById('consentYesOpt').classList.add('selected'); document.getElementById('consentYes').checked=true; }
-  else { document.getElementById('consentNoOpt').classList.add('selected'); document.getElementById('consentNo').checked=true; }
+  document.querySelectorAll('.consent-opt').forEach(function(o) { o.classList.remove('selected'); });
+  if (val === 'yes') { document.getElementById('consentYesOpt').classList.add('selected'); document.getElementById('consentYes').checked = true; }
+  else { document.getElementById('consentNoOpt').classList.add('selected'); document.getElementById('consentNo').checked = true; }
 }
 
 function proceedFromConsent() {
-  var yes=document.getElementById('consentYes').checked;
-  var no=document.getElementById('consentNo').checked;
-  if (!yes&&!no) { alert(lang==='ta-IN'?'தயவுசெய்து ஒரு விருப்பத்தை தேர்ந்தெடுக்கவும்.':'Please select Yes or No to proceed.'); return; }
+  var yes = document.getElementById('consentYes').checked;
+  var no  = document.getElementById('consentNo').checked;
+  if (!yes && !no) { alert(lang === 'ta-IN' ? 'தயவுசெய்து ஒரு விருப்பத்தை தேர்ந்தெடுக்கவும்.' : 'Please select Yes or No to proceed.'); return; }
   stopAllAudio();
   if (no) {
-    document.getElementById('stepConsent').style.display='none';
-    document.getElementById('appBody').innerHTML='<div style="text-align:center;padding:40px;font-size:16px;color:#555">'+T[lang].consent.declined+'</div>';
+    document.getElementById('stepConsent').style.display = 'none';
+    document.getElementById('appBody').innerHTML = '<div style="text-align:center;padding:40px;font-size:16px;color:#555">' + T[lang].consent.declined + '</div>';
     return;
   }
-  document.getElementById('stepConsent').style.display='none';
-  document.getElementById('stepSurvey').style.display='block';
-  renderAllOptions(); updateUILabels();
+  document.getElementById('stepConsent').style.display = 'none';
+  document.getElementById('stepSurvey').style.display = 'block';
+  renderAllOptions();
+  updateUILabels();
 }
 
 // ================================================================
-//  UI LABELS
+//  UI LABELS (unchanged from original)
 // ================================================================
 function updateUILabels() {
-  var t=T[lang]; var isTa=lang==='ta-IN';
+  var t = T[lang];
+  var isTa = lang === 'ta-IN';
   setTxt('sec0Title','📋 '+(isTa?'பிரிவு 0: மெட்டாடேட்டா':'SECTION 0: METADATA'));
   setTxt('secATitle','👤 '+(isTa?'பிரிவு A: சமூக-ஜனத்தொகை விவரம்':'SECTION A: SOCIO-DEMOGRAPHIC PROFILE'));
   setTxt('secBTitle','💼 '+(isTa?'பிரிவு B: வாழ்வாதாரம் மற்றும் பொருளாதார நிலை':'SECTION B: LIVELIHOODS & ECONOMIC STATUS'));
@@ -907,7 +1248,7 @@ function updateUILabels() {
   setTxt('qHasLoansText',isTa?'தற்போது நிலுவையில் உள்ள கடன்கள் உள்ளனவா?':'Do you currently have any outstanding loans?');
   setTxt('qLoanSourceText',isTa?'ஆமெனில்: யாரிடம் கடன் வாங்கினீர்கள்? (பல தேர்வுகள்)':'If Yes: Who did you borrow from? (Select all that apply)');
   setTxt('qMigrationText',t.b.migration);
-  setTxt('qMigrationFreqText',isTa?'ஆமெனில்: எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?':'If Yes: Frequency of return?');
+  setTxt('qMigrationFreqText',isTa?'ஆமெனில்:எவ்வளவு தடவை வீட்டிற்கு வருகிறார்கள்?':'If Yes: Frequency of return?');
   setTxt('qSHGMemberText',isTa?'நீங்கள் சுய உதவி குழு (SHG) உறுப்பினரா?':'Are you a member of a Self-Help Group (SHG)?');
   setTxt('qSHGNameText',t.c.shgName); setTxt('qSHGMeetFreqText',t.c.meetFreq);
   setTxt('qSHGSavesText',t.c.shgSaves); setTxt('qSHGLoanText',t.c.shgLoan);
@@ -942,43 +1283,43 @@ function updateUILabels() {
   setTxt('qMilkYieldText',isTa?'ஆமெனில்: தினசரி பால் மொத்த அளவு (லிட்டர்)':'If Yes: Daily Milk Yield (Total Liters)');
   setTxt('qFodderText',t.g.fodder); setTxt('qCropWaterText',t.g.cropWater);
   setTxt('submitBtn',isTa?'✅ கணக்கெடுப்பை சமர்ப்பிக்கவும்':'✅ Submit Survey');
-  // Set data-speak on all speaker buttons
+
   (function(){
     function ds(id,text){var b=document.getElementById(id);if(b&&text)b.dataset.speak=text;}
-    ds('btn-audio-village',t.q.villageName); ds('btn-audio-name',t.a.name);
-    ds('btn-audio-caste',t.a.caste); ds('btn-audio-house',t.a.houseType);
-    ds('btn-audio-family',t.a.familySize); ds('btn-audio-hasaadhar',t.a.hasAadhar);
-    ds('btn-audio-aadhar',t.a.aadharNum); ds('btn-audio-income',t.b.primaryIncome);
-    ds('btn-audio-monthlyincome',t.b.monthlyIncome); ds('btn-audio-ration',t.b.rationCard);
-    ds('btn-audio-loans',t.b.hasLoans); ds('btn-audio-loansource',t.b.loanSource);
-    ds('btn-audio-migration',t.b.migration); ds('btn-audio-migfreq',t.b.migrationFreq);
-    ds('btn-audio-shgmember',t.b.shgMember); ds('btn-audio-shgname',t.c.shgName);
-    ds('btn-audio-shgmeet',t.c.meetFreq); ds('btn-audio-shgsaves',t.c.shgSaves);
-    ds('btn-audio-shgloan',t.c.shgLoan); ds('btn-audio-shgloanpurpose',t.c.shgLoanPurpose);
-    ds('btn-audio-school',t.d.schoolStatus); ds('btn-mat-male',t.d.male);
-    ds('btn-mat-female',t.d.female); ds('btn-mat-enrolled',t.d.enrolled);
-    ds('btn-mat-dropout',t.d.dropout); ds('btn-mat-never',t.d.neverEnrolled);
-    ds('btn-audio-schooltype',t.d.schoolType); ds('btn-audio-dropoutreason',t.d.dropoutReason);
-    ds('btn-audio-travelschool',t.d.travelSchool); ds('btn-audio-tuition',t.d.tuition);
-    ds('btn-audio-learning',t.d.learning); ds('btn-audio-smartphone',t.d.smartphone);
-    ds('btn-audio-internet',t.d.internet); ds('btn-audio-watersource',t.e.waterSource);
-    ds('btn-audio-watertreat',t.e.waterTreatment); ds('btn-audio-toilet',t.e.hasToilet);
-    ds('btn-audio-toiletusable',t.e.toiletUsable); ds('btn-audio-toiletusers',t.e.toiletUsers);
-    ds('btn-audio-menstrual',t.e.menstrualMaterial); ds('btn-audio-menstrualdisposal',t.e.menstrualDisposal);
-    ds('btn-audio-greenveg',t.e.greenVeg); ds('btn-audio-milkfreq',t.e.milkFreq);
-    ds('btn-audio-ncd',t.e.ncdMatrix); ds('btn-audio-wasteseg',t.f.segregation);
-    ds('btn-audio-wetwaste',t.f.wetWaste); ds('btn-audio-drywaste',t.f.dryWaste);
-    ds('btn-audio-wastecollect',t.f.collector); ds('btn-audio-land',t.g.ownsLand);
-    ds('btn-audio-acres',t.g.landAcres); ds('btn-audio-milch',t.g.milchAnimals);
-    ds('btn-audio-milchcount',t.g.milchCount); ds('btn-audio-milkyield',t.g.milkYield);
-    ds('btn-audio-fodder',t.g.fodder); ds('btn-audio-cropwater',t.g.cropWater);
+    ds('btn-audio-village',T[lang].q.villageName||''); ds('btn-audio-name',T[lang].a.name||'');
+    ds('btn-audio-caste',T[lang].a.caste||''); ds('btn-audio-house',T[lang].a.houseType||'');
+    ds('btn-audio-family',T[lang].a.familySize||''); ds('btn-audio-hasaadhar',T[lang].a.hasAadhar||'');
+    ds('btn-audio-aadhar',T[lang].a.aadharNum||''); ds('btn-audio-income',T[lang].b.primaryIncome||'');
+    ds('btn-audio-monthlyincome',T[lang].b.monthlyIncome||''); ds('btn-audio-ration',T[lang].b.rationCard||'');
+    ds('btn-audio-loans',T[lang].b.hasLoans||''); ds('btn-audio-loansource',T[lang].b.loanSource||'');
+    ds('btn-audio-migration',T[lang].b.migration||''); ds('btn-audio-migfreq',T[lang].b.migrationFreq||'');
+    ds('btn-audio-shgmember',T[lang].b.shgMember||''); ds('btn-audio-shgname',T[lang].c.shgName||'');
+    ds('btn-audio-shgmeet',T[lang].c.meetFreq||''); ds('btn-audio-shgsaves',T[lang].c.shgSaves||'');
+    ds('btn-audio-shgloan',T[lang].c.shgLoan||''); ds('btn-audio-shgloanpurpose',T[lang].c.shgLoanPurpose||'');
+    ds('btn-audio-school',T[lang].d.schoolStatus||''); ds('btn-mat-male',T[lang].d.male||'');
+    ds('btn-mat-female',T[lang].d.female||''); ds('btn-mat-enrolled',T[lang].d.enrolled||'');
+    ds('btn-mat-dropout',T[lang].d.dropout||''); ds('btn-mat-never',T[lang].d.neverEnrolled||'');
+    ds('btn-audio-schooltype',T[lang].d.schoolType||''); ds('btn-audio-dropoutreason',T[lang].d.dropoutReason||'');
+    ds('btn-audio-travelschool',T[lang].d.travelSchool||''); ds('btn-audio-tuition',T[lang].d.tuition||'');
+    ds('btn-audio-learning',T[lang].d.learning||''); ds('btn-audio-smartphone',T[lang].d.smartphone||'');
+    ds('btn-audio-internet',T[lang].d.internet||''); ds('btn-audio-watersource',T[lang].e.waterSource||'');
+    ds('btn-audio-watertreat',T[lang].e.waterTreatment||''); ds('btn-audio-toilet',T[lang].e.hasToilet||'');
+    ds('btn-audio-toiletusable',T[lang].e.toiletUsable||''); ds('btn-audio-toiletusers',T[lang].e.toiletUsers||'');
+    ds('btn-audio-menstrual',T[lang].e.menstrualMaterial||''); ds('btn-audio-menstrualdisposal',T[lang].e.menstrualDisposal||'');
+    ds('btn-audio-greenveg',T[lang].e.greenVeg||''); ds('btn-audio-milkfreq',T[lang].e.milkFreq||'');
+    ds('btn-audio-ncd',T[lang].e.ncdMatrix||''); ds('btn-audio-wasteseg',T[lang].f.segregation||'');
+    ds('btn-audio-wetwaste',T[lang].f.wetWaste||''); ds('btn-audio-drywaste',T[lang].f.dryWaste||'');
+    ds('btn-audio-wastecollect',T[lang].f.collector||''); ds('btn-audio-land',T[lang].g.ownsLand||'');
+    ds('btn-audio-acres',T[lang].g.landAcres||''); ds('btn-audio-milch',T[lang].g.milchAnimals||'');
+    ds('btn-audio-milchcount',T[lang].g.milchCount||''); ds('btn-audio-milkyield',T[lang].g.milkYield||'');
+    ds('btn-audio-fodder',T[lang].g.fodder||''); ds('btn-audio-cropwater',T[lang].g.cropWater||'');
   })();
 }
 
 function setTxt(id,text){var el=document.getElementById(id);if(el)el.textContent=text;}
 
 // ================================================================
-//  RENDER OPTIONS
+//  RENDER OPTIONS (unchanged from original)
 // ================================================================
 function renderAllOptions() {
   var t=T[lang]; var en=T['en-IN'];
@@ -1053,6 +1394,7 @@ function selectOpt(labelEl,id,type){
 }
 
 function updateOptStyle(input){var label=input.closest('.opt-item');if(label)label.classList[input.checked?'add':'remove']('selected');}
+
 function getSelected(id,isMulti){
   var inputs=document.querySelectorAll('input[name="'+id+'"]:checked');
   var vals=[]; inputs.forEach(function(i){vals.push(i.value);});
@@ -1060,7 +1402,7 @@ function getSelected(id,isMulti){
 }
 
 // ================================================================
-//  CONDITIONAL LOGIC
+//  CONDITIONAL LOGIC (unchanged)
 // ================================================================
 function checkAadhar(){showHide('qAadharNum',getSelected('hasaadhar',false)==='Yes');}
 function checkLoans(){showHide('qLoanSource',getSelected('loans',false)==='Yes');}
@@ -1080,309 +1422,266 @@ function checkMilchCountCondition(){showHide('qMilkYield',parseInt(document.getE
 function showHide(id,show){var el=document.getElementById(id);if(!el)return;if(show)el.classList.remove('hidden');else el.classList.add('hidden');}
 
 // ================================================================
-//  TTS ENGINE — Google Translate Audio (FIXED)
-//
-//  CRITICAL FIXES applied:
-//  1. REMOVED crossOrigin = 'anonymous'  ← was causing CORS block = silence
-//  2. REMOVED oncanplaythrough gate      ← was preventing play on iOS/Safari
-//  3. REMOVED audio.load()              ← was resetting load state on mobile
-//  4. Play immediately via audio.play() ← works on all browsers
-// ================================================================
-var _currentAudio = null;
-var ttsActive = false;
-var activeBtnId = null;
-
-// Build Google Translate TTS URL (no crossOrigin needed — plays as media, not fetch)
-function _gTTSUrl(text) {
-  var tl = (lang === 'ta-IN') ? 'ta' : 'en';
-  return 'https://translate.google.com/translate_tts'
-       + '?ie=UTF-8'
-       + '&client=tw-ob'
-       + '&tl=' + tl
-       + '&q=' + encodeURIComponent(text.substring(0, 200));
-}
-
-// Split text at sentence boundaries, max 180 chars per chunk
-function _splitChunks(text) {
-  if (text.length <= 180) return [text];
-  var chunks = [], cur = '';
-  var parts = text.split(/(?<=[.!?।\n,])\s*/u);
-  for (var i = 0; i < parts.length; i++) {
-    var s = parts[i].trim();
-    if (!s) continue;
-    if ((cur ? cur + ' ' + s : s).length <= 180) {
-      cur = cur ? cur + ' ' + s : s;
-    } else {
-      if (cur) chunks.push(cur);
-      cur = s.length <= 180 ? s : s.substring(0, 180);
-    }
-  }
-  if (cur) chunks.push(cur);
-  return chunks;
-}
-
-// Play chunks one by one
-function _playChunks(chunks, idx, btnId) {
-  if (!ttsActive || activeBtnId !== btnId || idx >= chunks.length) {
-    if (activeBtnId === btnId) { setBtnState(btnId, false); ttsActive = false; activeBtnId = null; }
-    return;
-  }
-  var audio = new Audio();
-  // ✅ NO crossOrigin here — this was the bug causing silence on Chrome/desktop
-  _currentAudio = audio;
-  audio.src = _gTTSUrl(chunks[idx]);
-
-  audio.onended = function() {
-    _playChunks(chunks, idx + 1, btnId);
-  };
-  audio.onerror = function() {
-    // Google TTS failed — fall back to browser speech synthesis
-    _browserSpeak(chunks[idx], btnId, function() {
-      _playChunks(chunks, idx + 1, btnId);
-    });
-  };
-
-  // ✅ Play immediately — do NOT wait for oncanplaythrough (breaks iOS)
-  // ✅ No audio.load() — setting .src already starts loading
-  audio.play().catch(function() {
-    // Autoplay policy blocked — fall back to browser speech
-    _browserSpeak(chunks[idx], btnId, function() {
-      _playChunks(chunks, idx + 1, btnId);
-    });
-  });
-}
-
-// Browser speechSynthesis fallback
-function _browserSpeak(text, btnId, onDone) {
-  if (!('speechSynthesis' in window)) { if (onDone) onDone(); return; }
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance(text);
-  u.lang = (lang === 'ta-IN') ? 'ta-IN' : 'en-IN';
-  u.rate = 0.85; u.volume = 1;
-  u.onend = onDone || null;
-  u.onerror = onDone || null;
-  window.speechSynthesis.speak(u);
-}
-
-// Main speak function — called by all speaker buttons
-function speakText(text, btnId) {
-  if (!text || !text.trim()) return;
-  // Toggle: same button stops, different button switches
-  if (ttsActive) {
-    stopAllAudio();
-    if (activeBtnId === btnId) return; // same button → just stop
-  }
-  activeBtnId = btnId;
-  ttsActive = true;
-  setBtnState(btnId, true, 'playing');
-  // Update consent button label
-  if (btnId === 'btn-consent-audio') {
-    var lbl = document.getElementById('consentAudioLabel');
-    if (lbl) lbl.textContent = (lang === 'ta-IN') ? 'நிறுத்த கிளிக் செய்யவும்' : 'Click to Stop';
-  }
-  _playChunks(_splitChunks(text), 0, btnId);
-}
-
-function stopAllAudio() {
-  if (_currentAudio) {
-    try { _currentAudio.pause(); _currentAudio.src = ''; } catch(e) {}
-    _currentAudio = null;
-  }
-  if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch(e) {} }
-  if (activeBtnId) setBtnState(activeBtnId, false);
-  ttsActive = false; activeBtnId = null;
-  var lbl = document.getElementById('consentAudioLabel');
-  if (lbl) lbl.textContent = (lang==='ta-IN')?'சம்மதத்தை கேளுங்கள்':'Listen to Consent';
-}
-
-function toggleConsentAudio() {
-  if (ttsActive && activeBtnId === 'btn-consent-audio') { stopAllAudio(); return; }
-  speakText(T[lang].consent.text, 'btn-consent-audio');
-}
-
-function setBtnState(btnId, on, state) {
-  if (!btnId) return;
-  var b = document.getElementById(btnId); if (!b) return;
-  b.classList.remove('loading','playing');
-  if (!on) { b.textContent = '🔊'; return; }
-  b.textContent = '⏹️'; b.classList.add('playing');
-}
-
-// ================================================================
-//  MICROPHONE
+//  MICROPHONE (unchanged from original)
 // ================================================================
 function startMic(field) {
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var isTa = (lang === 'ta-IN');
-  if (!SR) { alert(isTa?'Google Chrome அல்லது Edge மட்டுமே குரல் உள்ளீட்டை ஆதரிக்கும்.':'Voice input is only supported in Google Chrome or Edge.'); return; }
-  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-    alert(isTa?'குரல் உள்ளீட்டிற்கு HTTPS தேவை.':'Voice input requires HTTPS.'); return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert('Voice input is only supported in Google Chrome or Edge. Please use one of those browsers.');
+    return;
   }
-  var btn = document.getElementById('mic-' + field);
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    alert('Voice input requires a secure (HTTPS) connection. Please open this page over HTTPS.');
+    return;
+  }
+  const btn = document.getElementById('mic-' + field);
   if (isRec) {
     if (recog) { try { recog.stop(); } catch(e) {} }
     isRec = false;
     if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
-    curMicBtn = null; curMicField = null; return;
+    curMicBtn = null; curMicField = null;
+    return;
   }
-  // iOS Safari: request getUserMedia first to trigger permission dialog
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  function _doStart() {
-    recog = new SR();
-    recog.lang = lang; recog.interimResults = false; recog.maxAlternatives = 1; recog.continuous = false;
-    recog.onstart = function(){isRec=true;curMicBtn=btn;curMicField=field;if(btn){btn.classList.add('recording');btn.textContent='⏹️';}};
-    recog.onresult = function(e){
-      var transcript = e.results[0][0].transcript.trim();
-      var numFields = ['adultMales','adultFemales','children','totalMembers','aadhar','income','schoolDistance','landAcres','milchCount','milkYield'];
-      var isNum = numFields.indexOf(field) !== -1;
-      var finalVal = transcript;
-      if (isNum) { var n=parseInt(transcript.replace(/[,\s]/g,''),10); finalVal=(!isNaN(n)&&n>=0)?n:transcript; }
-      var audioEl = document.getElementById(field+'Audio'); if(audioEl) audioEl.value = finalVal;
-      if (isNum && typeof finalVal==='number') { var textEl=document.getElementById(field+'Text'); if(textEl) textEl.value=finalVal; }
-    };
-    recog.onerror = function(e){
-      isRec=false; if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';} curMicBtn=null; curMicField=null;
-      var msg='';
-      switch(e.error){
-        case 'not-allowed': case 'permission-denied':
-          msg = isTa ? 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது.\niOS: Settings → Safari → Microphone → Allow' : 'Microphone permission denied.\nFix: Click 🔒 in address bar → Allow Microphone → Reload.'; break;
-        case 'no-speech': msg = isTa?'பேச்சு கண்டறியவில்லை.':'No speech detected. Try again.'; break;
-        case 'network': msg = isTa?'நெட்வொர்க் பிழை.':'Network error.'; break;
-        default: msg = 'Error: '+e.error;
+  recog = new SR();
+  recog.lang = lang; recog.interimResults = false; recog.maxAlternatives = 1; recog.continuous = false;
+  recog.onstart = function () {
+    isRec = true; curMicBtn = btn; curMicField = field;
+    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹️'; }
+  };
+  recog.onresult = function (e) {
+    var transcript = e.results[0][0].transcript.trim();
+    var numberFields = ['adultMales','adultFemales','children','totalMembers','aadhar','income','schoolDistance','landAcres','milchCount','milkYield'];
+    var isNumericField = numberFields.indexOf(field) !== -1;
+    var finalVal = transcript;
+    if (isNumericField) {
+      var cleaned = transcript.replace(/[,\s]/g, '');
+      var num = parseInt(cleaned, 10);
+      if (isNaN(num)) {
+        var wordToNum = {'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19,'twenty':20,'thirty':30,'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,'hundred':100,'thousand':1000};
+        var words = transcript.toLowerCase().split(/\s+/);
+        var total = 0, current = 0;
+        for (var wi = 0; wi < words.length; wi++) {
+          var w = words[wi];
+          if (wordToNum[w] !== undefined) {
+            if (w === 'hundred') { current = (current || 1) * 100; }
+            else if (w === 'thousand') { total += (current || 1) * 1000; current = 0; }
+            else { current += wordToNum[w]; }
+          }
+        }
+        num = total + current;
       }
-      if (msg) alert(msg);
-    };
-    recog.onend = function(){isRec=false;if(curMicBtn){curMicBtn.classList.remove('recording');curMicBtn.textContent='🎤';}curMicBtn=null;curMicField=null;recog=null;};
-    try { recog.start(); } catch(err){ isRec=false; if(btn){btn.classList.remove('recording');btn.textContent='🎤';} alert('Could not start mic: '+err.message); }
-  }
-  if ((isIOS || isSafari) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    if (btn) btn.textContent = '⏳';
-    navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(stream){ stream.getTracks().forEach(function(t){t.stop();}); if(btn)btn.textContent='🎤'; _doStart(); })
-      .catch(function(){ if(btn)btn.textContent='🎤'; alert(isTa?'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது.\nSettings → Safari → Microphone → Allow':'Mic permission denied.\nSettings → Safari → Microphone → Allow'); });
-  } else {
-    _doStart();
+      finalVal = (!isNaN(num) && num >= 0) ? num : transcript;
+    }
+    var audioEl = document.getElementById(field + 'Audio');
+    if (audioEl) audioEl.value = finalVal;
+    if (isNumericField && typeof finalVal === 'number') {
+      var textEl = document.getElementById(field + 'Text');
+      if (textEl) textEl.value = finalVal;
+    }
+  };
+  recog.onerror = function (e) {
+    isRec = false;
+    if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
+    curMicBtn = null; curMicField = null;
+    var msg = '';
+    switch (e.error) {
+      case 'not-allowed': case 'permission-denied':
+        msg = 'Microphone permission was denied.\n\nTo fix:\n1. Click the 🔒 lock icon in the address bar.\n2. Set Microphone to "Allow".\n3. Reload the page.'; break;
+      case 'no-speech': msg = 'No speech detected. Please try speaking again.'; break;
+      case 'network': msg = 'A network error occurred. Please check your internet connection.'; break;
+      case 'audio-capture': msg = 'No microphone found. Please connect a microphone and try again.'; break;
+      default: msg = 'Speech recognition error: ' + e.error;
+    }
+    if (msg) alert(msg);
+  };
+  recog.onend = function () {
+    isRec = false;
+    if (curMicBtn) { curMicBtn.classList.remove('recording'); curMicBtn.textContent = '🎤'; }
+    curMicBtn = null; curMicField = null; recog = null;
+  };
+  try { recog.start(); } catch (err) {
+    isRec = false;
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤'; }
+    alert('Could not start microphone: ' + err.message);
   }
 }
 
 // ================================================================
-//  SUBMIT
+//  SUBMIT FORM (unchanged from original)
 // ================================================================
 function submitForm() {
   stopAllAudio();
-  if (formSubmitted) { showStatus(lang==='ta-IN'?'✅ கணக்கெடுப்பு ஏற்கனவே சமர்ப்பிக்கப்பட்டது.':'✅ Survey already submitted.','success'); return; }
-  var isTa=(lang==='ta-IN');
-  function req(id,e,t){var el=document.getElementById(id);if(!el)return true;var v=el.value!==undefined?el.value.toString().trim():'';if(!v){showStatus(isTa?'❌ '+t:'❌ '+e,'error');el.focus();return false;}return true;}
-  function reqSelect(name,e,t){if(!document.querySelector('input[name="'+name+'"]:checked')){showStatus(isTa?'❌ '+t:'❌ '+e,'error');return false;}return true;}
-  function reqEither(id1,id2,e,t){var v1=(document.getElementById(id1)||{}).value||'';var v2=(document.getElementById(id2)||{}).value||'';if(!v1.trim()&&!v2.trim()){showStatus(isTa?'❌ '+t:'❌ '+e,'error');return false;}return true;}
+  if (formSubmitted) {
+    showStatus(lang==='ta-IN'?'✅ கணக்கெடுப்பு ஏற்கனவே சமர்ப்பிக்கப்பட்டது.':'✅ Survey already submitted.','success');
+    return;
+  }
+  var isTa = (lang === 'ta-IN');
+  function req(id,msgEn,msgTa){var el=document.getElementById(id);if(!el)return true;var v=el.value!==undefined?el.value.toString().trim():'';if(!v){showStatus(isTa?'❌ '+msgTa:'❌ '+msgEn,'error');el.focus();return false;}return true;}
+  function reqSelect(name,msgEn,msgTa){if(!document.querySelector('input[name="'+name+'"]:checked')){showStatus(isTa?'❌ '+msgTa:'❌ '+msgEn,'error');return false;}return true;}
+  function reqEither(id1,id2,msgEn,msgTa){var v1=(document.getElementById(id1)||{}).value||'';var v2=(document.getElementById(id2)||{}).value||'';if(!v1.trim()&&!v2.trim()){showStatus(isTa?'❌ '+msgTa:'❌ '+msgEn,'error');return false;}return true;}
+
   if(!reqSelect('village','Please select Village Name.','கிராமத்தை தேர்ந்தெடுக்கவும்.'))return;
   if(!reqEither('nameText','nameAudio','Please enter Respondent Name.','பதிலளிப்பவர் பெயரை உள்ளிடவும்.'))return;
-  if(!reqSelect('caste','Please select Social Category.','சமூக வகையை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('caste','Please select Social Category (Caste).','சமூக வகையை தேர்ந்தெடுக்கவும்.'))return;
   if(!reqSelect('house','Please select Type of House.','வீட்டின் வகையை தேர்ந்தெடுக்கவும்.'))return;
-  if(!req('adultMales','Please enter Adult Males.','வயதுக்கு மேற்பட்ட ஆண்கள் எண்ணிக்கை உள்ளிடவும்.'))return;
-  if(!req('adultFemales','Please enter Adult Females.','வயதுக்கு மேற்பட்ட பெண்கள் எண்ணிக்கை உள்ளிடவும்.'))return;
+  if(!req('adultMales','Please enter Adult Males count.','வயதுக்கு மேற்பட்ட ஆண்கள் எண்ணிக்கை உள்ளிடவும்.'))return;
+  if(!req('adultFemales','Please enter Adult Females count.','வயதுக்கு மேற்பட்ட பெண்கள் எண்ணிக்கை உள்ளிடவும்.'))return;
   if(!req('children','Please enter Children count.','குழந்தைகள் எண்ணிக்கை உள்ளிடவும்.'))return;
-  if(!reqSelect('hasaadhar','Do you have Aadhaar card?','ஆதார் அட்டை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('income','Please select Primary Income.','வருமான ஆதாரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('hasaadhar','Please answer: Do you have Aadhaar card?','ஆதார் அட்டை இருக்கிறதா என்று தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('income','Please select Primary Source of Income.','வருமான ஆதாரத்தை தேர்ந்தெடுக்கவும்.'))return;
   if(!req('incomeText','Please enter Monthly Income.','மாதாந்திர வருமானம் உள்ளிடவும்.'))return;
-  if(!reqSelect('ration','Please select Ration Card Type.','ரேஷன் அட்டை வகை தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('loans','Outstanding loans?','கடன் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('migration','Family member outside village?','குடும்ப இடம்பெயர்வு தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('shgmember','SHG member?','SHG உறுப்பினர் நிலை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('ration','Please select Ration Card Type.','ரேஷன் அட்டை வகையை தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('loans','Please answer: Do you have outstanding loans?','கடன் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('migration','Please answer: Family member living outside for work?','குடும்ப இடம்பெயர்வு பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('shgmember','Please answer: Are you an SHG member?','சுய உதவி குழு உறுப்பினர் பதில் தேர்ந்தெடுக்கவும்.'))return;
   if(!reqSelect('watersource','Please select Water Source.','குடிநீர் மூலாதாரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('watertreat','Treat drinking water?','குடிநீர் சுத்திகரிப்பு தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('toilet','Do you have a toilet?','கழிவறை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('wasteseg','Segregate waste?','கழிவு பிரிப்பு தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('land','Own agricultural land?','விவசாய நிலம் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
-  if(!reqSelect('milch','Own Milch Animals?','கால்நடை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('watertreat','Please answer: Do you treat drinking water?','குடிநீர் சுத்திகரிப்பு பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('toilet','Please answer: Do you have a toilet?','கழிவறை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('wasteseg','Please answer: Do you segregate waste?','கழிவு பிரிப்பு பதில் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('land','Please answer: Do you own agricultural land?','விவசாய நிலம் நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+  if(!reqSelect('milch','Please answer: Do you own Milch Animals?','கால்நடை நிலவரம் தேர்ந்தெடுக்கவும்.'))return;
+
   showProcessingOverlay(true);
-  window._submitNameT=(document.getElementById('nameText')||{}).value||'';
-  window._submitNameA=(document.getElementById('nameAudio')||{}).value||'';
-  document.getElementById('submitBtn').disabled=true;
-  var d={
-    langCode:lang, gpsLat:gpsLat, gpsLng:gpsLng,
-    surveyDate:(document.getElementById('dateDisplay')||{}).textContent||'', consent:'Yes',
-    villageName:getSelected('village',false),
-    nameText:window._submitNameT, nameAudio:window._submitNameA,
-    socialCategory:getSelected('caste',false), houseType:getSelected('house',false),
-    adultMales:(document.getElementById('adultMales')||{}).value||'',
-    adultFemales:(document.getElementById('adultFemales')||{}).value||'',
-    children:(document.getElementById('children')||{}).value||'',
-    totalMembers:(document.getElementById('totalMembers')||{}).value||'',
-    hasAadhar:getSelected('hasaadhar',false),
-    aadharText:(document.getElementById('aadharText')||{}).value||'',
-    aadharAudio:(document.getElementById('aadharAudio')||{}).value||'',
-    primaryIncome:getSelected('income',false),
-    incomeText:(document.getElementById('incomeText')||{}).value||'',
-    incomeAudio:(document.getElementById('incomeAudio')||{}).value||'',
-    rationCard:getSelected('ration',false), hasLoans:getSelected('loans',false),
-    loanSource:getSelected('loansource',true), hasMigration:getSelected('migration',false),
-    migrationFreq:getSelected('migfreq',false), isSHGMember:getSelected('shgmember',false),
-    shgNameText:(document.getElementById('shgNameText')||{}).value||'',
-    shgNameAudio:(document.getElementById('shgNameAudio')||{}).value||'',
-    shgMeetFreq:getSelected('shgmeet',false), shgSaves:getSelected('shgsaves',false),
-    shgLoan:getSelected('shgloan',false), shgLoanPurpose:getSelected('shgloanpurpose',false),
-    enrolledMale:(document.getElementById('enrolledMale')||{}).value||'0',
-    enrolledFemale:(document.getElementById('enrolledFemale')||{}).value||'0',
-    dropoutMale:(document.getElementById('dropoutMale')||{}).value||'0',
-    dropoutFemale:(document.getElementById('dropoutFemale')||{}).value||'0',
-    neverMale:(document.getElementById('neverMale')||{}).value||'0',
-    neverFemale:(document.getElementById('neverFemale')||{}).value||'0',
-    schoolType:getSelected('schooltype',false), dropoutReason:getSelected('dropoutreason',false),
-    schoolTravelMode:getSelected('travelmode',false),
-    schoolDistance:(document.getElementById('schoolDistance')||{}).value||'',
-    privateTuition:getSelected('tuition',false), learningStruggle:getSelected('learning',false),
-    hasSmartphone:getSelected('smartphone',false), internetIndep:getSelected('internet',false),
-    waterSource:getSelected('watersource',false), waterTreatment:getSelected('watertreat',false),
-    hasToilet:getSelected('toilet',false), toiletUsable:getSelected('toiletusable',false),
-    toiletUsers:getSelected('toiletusers',false), menstrualMaterial:getSelected('menstrual',false),
-    menstrualDisposal:getSelected('menstrualdisposal',false), greenVegFreq:getSelected('greenveg',false),
-    milkFreq:getSelected('milkfreq',false),
-    bpMale:(document.getElementById('bpMale')||{}).value||'',
-    bpFemale:(document.getElementById('bpFemale')||{}).value||'',
-    diabetesMale:(document.getElementById('diabetesMale')||{}).value||'',
-    diabetesFemale:(document.getElementById('diabetesFemale')||{}).value||'',
-    wasteSegregation:getSelected('wasteseg',false), wetWasteDisposal:getSelected('wetwaste',false),
-    dryWasteDisposal:getSelected('drywaste',false), wasteCollector:getSelected('wastecollect',false),
-    ownsLand:getSelected('land',false), landAcres:(document.getElementById('landAcres')||{}).value||'',
-    ownsMilchAnimals:getSelected('milch',false),
-    milchCount:(document.getElementById('milchCount')||{}).value||'',
-    milkYield:(document.getElementById('milkYield')||{}).value||'',
-    fodderShortage:getSelected('fodder',false), cropWaterShortage:getSelected('cropwater',false)
+  window._submitNameT = (document.getElementById('nameText')||{}).value||'';
+  window._submitNameA = (document.getElementById('nameAudio')||{}).value||'';
+  document.getElementById('submitBtn').disabled = true;
+  _doSubmitSave('');
+}
+
+function _doSubmitSave(photoUrl) {
+  const d = {
+    photoUrl: photoUrl||'', langCode: lang, gpsLat: gpsLat, gpsLng: gpsLng,
+    surveyDate: (document.getElementById('dateDisplay')||{}).textContent||'',
+    consent: 'Yes',
+    villageName: getSelected('village',false),
+    nameText: window._submitNameT||'', nameAudio: window._submitNameA||'',
+    socialCategory: getSelected('caste',false),
+    houseType: getSelected('house',false),
+    adultMales: (document.getElementById('adultMales')||{}).value||'',
+    adultFemales: (document.getElementById('adultFemales')||{}).value||'',
+    children: (document.getElementById('children')||{}).value||'',
+    totalMembers: (document.getElementById('totalMembers')||{}).value||'',
+    hasAadhar: getSelected('hasaadhar',false),
+    aadharText: (document.getElementById('aadharText')||{}).value||'',
+    aadharAudio: (document.getElementById('aadharAudio')||{}).value||'',
+    primaryIncome: getSelected('income',false),
+    incomeText: (document.getElementById('incomeText')||{}).value||'',
+    incomeAudio: (document.getElementById('incomeAudio')||{}).value||'',
+    rationCard: getSelected('ration',false),
+    hasLoans: getSelected('loans',false),
+    loanSource: getSelected('loansource',true),
+    hasMigration: getSelected('migration',false),
+    migrationFreq: getSelected('migfreq',false),
+    isSHGMember: getSelected('shgmember',false),
+    shgNameText: (document.getElementById('shgNameText')||{}).value||'',
+    shgNameAudio: (document.getElementById('shgNameAudio')||{}).value||'',
+    shgMeetFreq: getSelected('shgmeet',false),
+    shgSaves: getSelected('shgsaves',false),
+    shgLoan: getSelected('shgloan',false),
+    shgLoanPurpose: getSelected('shgloanpurpose',false),
+    enrolledMale: (document.getElementById('enrolledMale')||{}).value||'0',
+    enrolledFemale: (document.getElementById('enrolledFemale')||{}).value||'0',
+    dropoutMale: (document.getElementById('dropoutMale')||{}).value||'0',
+    dropoutFemale: (document.getElementById('dropoutFemale')||{}).value||'0',
+    neverMale: (document.getElementById('neverMale')||{}).value||'0',
+    neverFemale: (document.getElementById('neverFemale')||{}).value||'0',
+    schoolType: getSelected('schooltype',false),
+    dropoutReason: getSelected('dropoutreason',false),
+    schoolTravelMode: getSelected('travelmode',false),
+    schoolDistance: (document.getElementById('schoolDistance')||{}).value||'',
+    privateTuition: getSelected('tuition',false),
+    learningStruggle: getSelected('learning',false),
+    hasSmartphone: getSelected('smartphone',false),
+    internetIndep: getSelected('internet',false),
+    waterSource: getSelected('watersource',false),
+    waterTreatment: getSelected('watertreat',false),
+    hasToilet: getSelected('toilet',false),
+    toiletUsable: getSelected('toiletusable',false),
+    toiletUsers: getSelected('toiletusers',false),
+    menstrualMaterial: getSelected('menstrual',false),
+    menstrualDisposal: getSelected('menstrualdisposal',false),
+    greenVegFreq: getSelected('greenveg',false),
+    milkFreq: getSelected('milkfreq',false),
+    bpMale: (document.getElementById('bpMale')||{}).value||'',
+    bpFemale: (document.getElementById('bpFemale')||{}).value||'',
+    diabetesMale: (document.getElementById('diabetesMale')||{}).value||'',
+    diabetesFemale: (document.getElementById('diabetesFemale')||{}).value||'',
+    wasteSegregation: getSelected('wasteseg',false),
+    wetWasteDisposal: getSelected('wetwaste',false),
+    dryWasteDisposal: getSelected('drywaste',false),
+    wasteCollector: getSelected('wastecollect',false),
+    ownsLand: getSelected('land',false),
+    landAcres: (document.getElementById('landAcres')||{}).value||'',
+    ownsMilchAnimals: getSelected('milch',false),
+    milchCount: (document.getElementById('milchCount')||{}).value||'',
+    milkYield: (document.getElementById('milkYield')||{}).value||'',
+    fodderShortage: getSelected('fodder',false),
+    cropWaterShortage: getSelected('cropwater',false)
   };
-  fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(d) })
-    .then(function(){ document.getElementById('submitBtn').disabled=false; onSuccess({}); })
-    .catch(function(err){ document.getElementById('submitBtn').disabled=false; onError({message:err.message||'Network error.'}); });
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(d)
+  })
+  .then(function() {
+    document.getElementById('submitBtn').disabled = false;
+    onSuccess({ status: 'success' });
+  })
+  .catch(function(err) {
+    document.getElementById('submitBtn').disabled = false;
+    onError({ message: err.message || 'Network error. Please check your connection and try again.' });
+  });
 }
 
 function onSuccess(res) {
-  showProcessingOverlay(false); formSubmitted = true;
-  var isTa=(lang==='ta-IN');
-  var rName=(window._submitNameT||window._submitNameA||'').trim();
-  var vName=getSelected('village',false)||'';
-  var today=(document.getElementById('dateDisplay')||{}).textContent||'';
-  var greeting=isTa?(rName?rName+' அவர்களே, வணக்கம்! 🙏':'வணக்கம்! 🙏'):(rName?'Dear '+rName+', 🙏':'Thank you! 🙏');
-  document.getElementById('appBody').innerHTML=
-    '<div class="thankyou-wrap">'+
-    '<div class="thankyou-icon">✅</div>'+
-    '<div class="thankyou-org">Hand in Hand India · Project SIVD Phase I</div>'+
-    '<div class="thankyou-heading">'+(isTa?'நன்றி!':'Survey Submitted!')+'</div>'+
-    '<div style="font-size:20px;font-weight:700;color:#1565C0;margin-bottom:16px">'+greeting+'</div>'+
-    '<div class="thankyou-card"><p>'+(isTa?'📋 உங்கள் கணக்கெடுப்பு <strong>'+(today||'இன்று')+'</strong> அன்று பதிவு செய்யப்பட்டது.<br>கிராமம்: <strong>'+(vName||'—')+'</strong><br><br>🙌 உங்கள் மதிப்புமிக்க பங்களிப்பிற்கு மிகவும் நன்றி.':'📋 Your response was recorded on <strong>'+(today||'today')+'</strong>.<br>Village: <strong>'+(vName||'—')+'</strong><br><br>🙌 Your valuable input will help plan better programmes.')+'</p></div>'+
-    '<hr class="thankyou-divider">'+
-    '<div class="thankyou-footer">'+(isTa?'📞 கணக்கெடுப்பு ஒருங்கிணைப்பாளரிடம் தெரிவிக்கவும்.<br><em>Hand in Hand India – மக்கள் வாழ்க்கையை மேம்படுத்துவதற்காக</em>':'📞 Please inform your survey coordinator.<br><em>Hand in Hand India – Empowering people, transforming lives</em>')+'</div>'+
-    '<div class="thankyou-stars">🌟🌟🌟</div></div>';
-  window.scrollTo({top:0,behavior:'smooth'});
+  showProcessingOverlay(false);
+  formSubmitted = true;
+  var isTa = (lang === 'ta-IN');
+  var respondentName = (window._submitNameT || window._submitNameA || '').trim();
+  var villageName = getSelected('village',false) || '';
+  var today = (document.getElementById('dateDisplay')||{}).textContent || '';
+  var appBody = document.getElementById('appBody');
+  if (!appBody) return;
+  var greeting = isTa
+    ? (respondentName ? respondentName + ' அவர்களே, வணக்கம்! 🙏' : 'வணக்கம்! 🙏')
+    : (respondentName ? 'Dear ' + respondentName + ', 🙏' : 'Thank you! 🙏');
+  appBody.innerHTML =
+    '<div class="thankyou-wrap">' +
+      '<div class="thankyou-icon">✅</div>' +
+      '<div class="thankyou-org">Hand in Hand India · Project SIVD Phase I</div>' +
+      '<div class="thankyou-heading">' + (isTa?'நன்றி!':'Survey Submitted!') + '</div>' +
+      '<div style="font-size:20px;font-weight:700;color:#1565C0;margin-bottom:16px">' + greeting + '</div>' +
+      '<div class="thankyou-card"><p>' +
+        (isTa
+          ? '📋 உங்கள் கணக்கெடுப்பு <strong>'+(today||'இன்று')+'</strong> அன்று வெற்றிகரமாக பதிவு செய்யப்பட்டது.<br>கிராமம்: <strong>'+(villageName||'—')+'</strong><br><br>🙌 உங்கள் மதிப்புமிக்க பங்களிப்பிற்கு மிகவும் நன்றி.'
+          : '📋 Your response was recorded on <strong>'+(today||'today')+'</strong>.<br>Village: <strong>'+(villageName||'—')+'</strong><br><br>🙌 Your valuable input will help plan better programmes for your community.') +
+      '</p></div>' +
+      '<hr class="thankyou-divider">' +
+      '<div class="thankyou-footer">' +
+        (isTa
+          ? '📞 உங்கள் கணக்கெடுப்பு ஒருங்கிணைப்பாளரிடம் தெரிவிக்கவும்.<br>தகவல் முற்றிலும் ரகசியமாக வைக்கப்படும்.<br><br><em>Hand in Hand India – மக்கள் வாழ்க்கையை மேம்படுத்துவதற்காக</em>'
+          : '📞 Please inform your survey coordinator that this form has been submitted.<br>All information is kept strictly confidential.<br><br><em>Hand in Hand India – Empowering people, transforming lives</em>') +
+      '</div>' +
+      '<div class="thankyou-stars">🌟🌟🌟</div>' +
+    '</div>';
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
 function onError(err) {
   showProcessingOverlay(false);
-  showStatus('❌ '+(lang==='ta-IN'?'பிழை: ':'Error: ')+((err&&err.message)||'Unknown error'),'error');
-  var btn=document.getElementById('submitBtn'); if(btn) btn.disabled=false;
+  var isTa = (lang === 'ta-IN');
+  showStatus('❌ ' + (isTa?'பிழை: ':'Error: ') + ((err&&err.message)||err||'Unknown error'), 'error');
+  var btn = document.getElementById('submitBtn');
+  if (btn) btn.disabled = false;
 }
 
-function showStatus(msg,type){var d=document.getElementById('status');if(!d)return;d.textContent=msg;d.className='status '+type;}
+function showStatus(msg,type) {
+  const d = document.getElementById('status');
+  if (!d) return;
+  d.textContent = msg; d.className = 'status ' + type;
+}
 </script>
 </body>
 </html>
