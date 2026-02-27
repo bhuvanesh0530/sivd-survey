@@ -1055,8 +1055,7 @@ var ttsActive=false, activeBtnId=null, _curAudio=null;
 // Split long text into chunks ≤180 chars at sentence boundaries
 function _chunks(text, max){
   if(!text||text.length<=max) return [text];
-  var out=[], sentences=text.split(/[।.!?
-]+/), cur='';
+  var out=[], sentences=text.split(/[.!?\n।]+/), cur='';
   for(var i=0;i<sentences.length;i++){
     var s=sentences[i].trim(); if(!s) continue;
     if((cur+' '+s).trim().length<=max){ cur=(cur+' '+s).trim(); }
